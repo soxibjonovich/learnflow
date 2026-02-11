@@ -21,6 +21,7 @@ export default function FlashcardApp() {
   const [cards, setCards] = useState([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showHint, setShowHint] = useState(true);
   const [mode, setMode] = useState('study'); // 'study', 'create', 'manage', 'paraphrases', 'test'
   const [newCard, setNewCard] = useState({ front: '', back: '', example: '', translation: '', box: 1, unit: '' });
   const [editingId, setEditingId] = useState(null);
@@ -293,10 +294,6 @@ export default function FlashcardApp() {
   const rateCard = (correct) => {
     if (studyQueue.length === 0) return;
 
-    // Immediately flip back to the question side so the next card
-    // never briefly shows its answer before the flip animation.
-    setIsFlipped(false);
-
     const currentCard = studyQueue[currentCardIndex];
     const cardIndex = cards.findIndex(c => c.id === currentCard.id);
     
@@ -314,19 +311,25 @@ export default function FlashcardApp() {
     card.nextReview = getNextReviewTime(card.box);
     
     updatedCards[cardIndex] = card;
-    setCards(updatedCards);
-    
-    // Remove from queue and move to next
+
+    // Prepare next queue before updating UI
     const newQueue = studyQueue.filter((_, i) => i !== currentCardIndex);
-    setStudyQueue(newQueue);
-    
-    if (newQueue.length > 0) {
-      setCurrentCardIndex(Math.min(currentCardIndex, newQueue.length - 1));
-    } else {
-      setCurrentCardIndex(0);
-    }
-    
+    const nextIndex = newQueue.length > 0
+      ? Math.min(currentCardIndex, newQueue.length - 1)
+      : 0;
+
+    // Reset flip state and temporarily hide the hint while we transition
     setIsFlipped(false);
+    setShowHint(false);
+
+    // Apply queue/card changes on the next tick so the flip back
+    // feels smoother and avoids brief answer/hint glitches.
+    setTimeout(() => {
+      setCards(updatedCards);
+      setStudyQueue(newQueue);
+      setCurrentCardIndex(nextIndex);
+      setShowHint(true);
+    }, 150);
   };
 
   const reshuffleQueue = () => {
@@ -800,7 +803,8 @@ export default function FlashcardApp() {
         }
         
         .card-inner {
-          transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform;
+          transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
           transform-style: preserve-3d;
         }
         
@@ -963,7 +967,10 @@ export default function FlashcardApp() {
                     <div 
                       className="card-face cursor-pointer"
                       onClick={() => {
-                        setIsFlipped(true);
+                        if (!isFlipped) {
+                          setIsFlipped(true);
+                          setShowHint(false);
+                        }
                       }}
                     >
                       <div className="bg-white rounded-3xl p-12 min-h-[300px] flex items-center justify-center border-2 border-slate-200 shadow-xl hover:shadow-2xl transition-shadow">
@@ -977,7 +984,7 @@ export default function FlashcardApp() {
                               {currentStudyCard.translation}
                             </div>
                           )}
-                          {!isFlipped && (
+                          {!isFlipped && showHint && (
                             <div className="mt-6 text-sm text-slate-400 mono">Tap to reveal answer</div>
                           )}
                         </div>
