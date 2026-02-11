@@ -258,9 +258,18 @@ export default function FlashcardApp() {
     }
   };
 
-  const updateCard = async (id, front, back, example, translation) => {
+  const updateCard = async (id, front, back, example, translation, unit) => {
     const updated = cards.map(c => 
-      c.id === id ? { ...c, front: front.trim(), back: back.trim(), example: example.trim(), translation: translation.trim() } : c
+      c.id === id
+        ? {
+            ...c,
+            front: front.trim(),
+            back: back.trim(),
+            example: example.trim(),
+            translation: translation.trim(),
+            unit: (unit || '').trim() || 'General',
+          }
+        : c
     );
     setCards(updated);
     setEditingId(null);
@@ -272,6 +281,7 @@ export default function FlashcardApp() {
         back: back.trim(),
         example: example.trim(),
         translation: translation.trim(),
+        unit: (unit || '').trim() || 'General',
       });
     } catch (error) {
       console.error('Error updating card in database:', error);
@@ -1689,6 +1699,13 @@ export default function FlashcardApp() {
                             id={`back-${card.id}`}
                           />
                         </div>
+                      <div>
+                        <label className="text-xs text-slate-500 mono mb-1 block">Unit/Category</label>
+                        <Input
+                          defaultValue={card.unit || 'General'}
+                          id={`unit-${card.id}`}
+                        />
+                      </div>
                         <div>
                           <label className="text-xs text-slate-500 mono mb-1 block">Example</label>
                           <Textarea
@@ -1705,7 +1722,8 @@ export default function FlashcardApp() {
                               const back = document.getElementById(`back-${card.id}`).value;
                               const example = document.getElementById(`example-${card.id}`).value;
                               const translation = document.getElementById(`translation-${card.id}`).value;
-                              updateCard(card.id, front, back, example, translation);
+                              const unit = document.getElementById(`unit-${card.id}`).value;
+                              updateCard(card.id, front, back, example, translation, unit);
                             }}
                             className="flex-1"
                           >
