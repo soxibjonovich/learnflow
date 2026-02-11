@@ -1,7 +1,7 @@
 # LearnFlow - Flashcard Learning App
 
 An efficient flashcard learning application with spaced repetition (Leitner System), designed for optimal learning and memory retention.
-
+created by: telegram -> @safarovvv27 
 ## Features
 
 - 🧠 **Spaced Repetition** - Leitner system with 5 boxes for optimal memory retention
