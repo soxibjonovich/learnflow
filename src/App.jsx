@@ -293,6 +293,10 @@ export default function FlashcardApp() {
   const rateCard = (correct) => {
     if (studyQueue.length === 0) return;
 
+    // Immediately flip back to the question side so the next card
+    // never briefly shows its answer before the flip animation.
+    setIsFlipped(false);
+
     const currentCard = studyQueue[currentCardIndex];
     const cardIndex = cards.findIndex(c => c.id === currentCard.id);
     
