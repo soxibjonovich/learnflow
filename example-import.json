@@ -1,0 +1,50 @@
+[
+  {
+    "front": "Photosynthesis",
+    "back": "The process by which plants convert light energy into chemical energy",
+    "translation": "Фотосинтез",
+    "example": "During photosynthesis, plants absorb carbon dioxide and release oxygen."
+  },
+  {
+    "front": "Mitochondria",
+    "back": "The powerhouse of the cell, producing ATP",
+    "translation": "Митохондрии",
+    "example": "Mitochondria are essential for cellular respiration and energy production."
+  },
+  {
+    "front": "DNA",
+    "back": "Deoxyribonucleic acid - carrier of genetic information",
+    "translation": "ДНК",
+    "example": "DNA contains the instructions needed for an organism to develop and function."
+  },
+  {
+    "front": "Osmosis",
+    "back": "Movement of water molecules through a semipermeable membrane",
+    "translation": "Осмос",
+    "example": "Plant cells use osmosis to absorb water from the soil."
+  },
+  {
+    "front": "Enzyme",
+    "back": "A biological catalyst that speeds up chemical reactions",
+    "translation": "Фермент",
+    "example": "Digestive enzymes help break down food in the stomach."
+  },
+  {
+    "front": "Ecosystem",
+    "back": "A community of living organisms interacting with their environment",
+    "translation": "Экосистема",
+    "example": "A rainforest ecosystem contains thousands of different species."
+  },
+  {
+    "front": "Evolution",
+    "back": "The process of gradual change in species over time",
+    "translation": "Эволюция",
+    "example": "Darwin's theory of evolution explains how species adapt to their environment."
+  },
+  {
+    "front": "Protein",
+    "back": "Large molecules made of amino acids, essential for cell structure and function",
+    "translation": "Белок",
+    "example": "Proteins are the building blocks of muscles and tissues."
+  }
+]
