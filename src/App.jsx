@@ -14,6 +14,7 @@ import {
   fetchParaphrases as fetchParaphrasesFromDb,
   addParaphrase as addParaphraseToDb,
   deleteParaphrase as deleteParaphraseFromDb,
+  updateParaphrase as updateParaphraseInDb,
 } from './lib/supabase';
 
 export default function FlashcardApp() {
@@ -21,7 +22,6 @@ export default function FlashcardApp() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState('study'); // 'study', 'create', 'manage', 'paraphrases', 'test'
-  const [showAnswer, setShowAnswer] = useState(false);
   const [newCard, setNewCard] = useState({ front: '', back: '', example: '', translation: '', box: 1, unit: '' });
   const [editingId, setEditingId] = useState(null);
   const [stats, setStats] = useState({ total: 0, mastered: 0, learning: 0, new: 0 });
@@ -31,6 +31,8 @@ export default function FlashcardApp() {
   const [importFormat, setImportFormat] = useState('csv'); // 'csv', 'tsv', 'json', 'quizlet'
   const [paraphrases, setParaphrases] = useState([]);
   const [newParaphrase, setNewParaphrase] = useState({ original: '', variations: ['', '', ''] });
+  const [editingParaphraseId, setEditingParaphraseId] = useState(null);
+  const [editingParaphraseDraft, setEditingParaphraseDraft] = useState({ original: '', variations: [] });
   
   // Test mode state
   const [testCards, setTestCards] = useState([]);
@@ -68,7 +70,7 @@ export default function FlashcardApp() {
     }
   }, []);
 
-  // If there are no local cards yet, try to load initial cards from the database
+  // Always try to load/merge latest data from the database
   useEffect(() => {
     const loadFromDatabase = async () => {
       const stored = localStorage.getItem('flashcards');
@@ -78,42 +80,67 @@ export default function FlashcardApp() {
         setIsLoadingFromDb(true);
         setDbError(null);
 
-        // Load cards from DB if not in localStorage
-        if (!stored) {
-          const sharedCards = await fetchSharedCards();
-          if (sharedCards && sharedCards.length > 0) {
-            const now = Date.now();
-            const initialCards = sharedCards.map((card, index) => ({
-              id: card.id ?? now + index,
-              front: card.front || '',
-              back: card.back || '',
-              example: card.example || '',
-              translation: card.translation || '',
-              unit: card.unit || 'General',
-              box: 1,
-              reviews: 0,
-              lastReview: null,
-              nextReview: null,
-              created: now + index,
-            }));
+        // Always load cards from DB and merge with any locally stored cards
+        const sharedCards = await fetchSharedCards();
+        if (sharedCards && sharedCards.length > 0) {
+          const now = Date.now();
+          const dbCards = sharedCards.map((card, index) => ({
+            id: card.id ?? now + index,
+            front: card.front || '',
+            back: card.back || '',
+            example: card.example || '',
+            translation: card.translation || '',
+            unit: card.unit || 'General',
+            box: 1,
+            reviews: 0,
+            lastReview: null,
+            nextReview: null,
+            created: now + index,
+          }));
 
-            setCards(initialCards);
-            buildStudyQueue(initialCards);
+          let mergedCards = dbCards;
+
+          if (stored) {
+            try {
+              const localCards = JSON.parse(stored) || [];
+              const dbIds = new Set(dbCards.map((c) => c.id));
+              const localOnlyCards = localCards.filter((c) => !dbIds.has(c.id));
+              mergedCards = [...dbCards, ...localOnlyCards];
+            } catch (error) {
+              console.error('Error merging local cards with database cards:', error);
+            }
           }
+
+          setCards(mergedCards);
+          buildStudyQueue(mergedCards);
         }
 
-        // Load paraphrases from DB if not in localStorage
-        if (!storedParaphrases) {
-          const dbParaphrases = await fetchParaphrasesFromDb();
-          if (dbParaphrases && dbParaphrases.length > 0) {
-            const mapped = dbParaphrases.map((p) => ({
-              id: p.id,
-              original: p.original || '',
-              variations: Array.isArray(p.variations) ? p.variations : [],
-              created: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
-            }));
-            setParaphrases(mapped);
+        // Always load paraphrases from DB and merge with any locally stored paraphrases
+        const dbParaphrases = await fetchParaphrasesFromDb();
+        if (dbParaphrases && dbParaphrases.length > 0) {
+          const mappedDbParaphrases = dbParaphrases.map((p) => ({
+            id: p.id,
+            original: p.original || '',
+            variations: Array.isArray(p.variations) ? p.variations : [],
+            created: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
+          }));
+
+          let mergedParaphrases = mappedDbParaphrases;
+
+          if (storedParaphrases) {
+            try {
+              const localParaphrases = JSON.parse(storedParaphrases) || [];
+              const dbParaphraseIds = new Set(mappedDbParaphrases.map((p) => p.id));
+              const localOnlyParaphrases = localParaphrases.filter(
+                (p) => !dbParaphraseIds.has(p.id)
+              );
+              mergedParaphrases = [...mappedDbParaphrases, ...localOnlyParaphrases];
+            } catch (error) {
+              console.error('Error merging local paraphrases with database paraphrases:', error);
+            }
           }
+
+          setParaphrases(mergedParaphrases);
         }
       } catch (error) {
         console.error('Error loading data from database:', error);
@@ -295,7 +322,6 @@ export default function FlashcardApp() {
       setCurrentCardIndex(0);
     }
     
-    setShowAnswer(false);
     setIsFlipped(false);
   };
 
@@ -307,7 +333,6 @@ export default function FlashcardApp() {
     }
     setStudyQueue(shuffled);
     setCurrentCardIndex(0);
-    setShowAnswer(false);
     setIsFlipped(false);
   };
 
@@ -562,6 +587,80 @@ export default function FlashcardApp() {
       console.error('Error deleting paraphrase from database:', error);
       setDbError('Could not delete paraphrase from database.');
     }
+  };
+
+  const startEditingParaphrase = (paraphrase) => {
+    setEditingParaphraseId(paraphrase.id);
+    setEditingParaphraseDraft({
+      original: paraphrase.original || '',
+      variations: Array.isArray(paraphrase.variations) ? [...paraphrase.variations] : [],
+    });
+  };
+
+  const cancelEditingParaphrase = () => {
+    setEditingParaphraseId(null);
+    setEditingParaphraseDraft({ original: '', variations: [] });
+  };
+
+  const updateExistingParaphraseOriginal = (value) => {
+    setEditingParaphraseDraft((prev) => ({
+      ...prev,
+      original: value,
+    }));
+  };
+
+  const updateExistingParaphraseVariation = (index, value) => {
+    setEditingParaphraseDraft((prev) => {
+      const next = [...prev.variations];
+      next[index] = value;
+      return {
+        ...prev,
+        variations: next,
+      };
+    });
+  };
+
+  const addVariationToExistingParaphrase = () => {
+    setEditingParaphraseDraft((prev) => ({
+      ...prev,
+      variations: [...prev.variations, ''],
+    }));
+  };
+
+  const saveEditingParaphrase = async () => {
+    if (!editingParaphraseId) return;
+
+    const trimmedOriginal = editingParaphraseDraft.original.trim();
+    const cleanedVariations = editingParaphraseDraft.variations
+      .map((v) => v.trim())
+      .filter((v) => v);
+
+    if (!trimmedOriginal || cleanedVariations.length === 0) return;
+
+    const updatedList = paraphrases.map((p) =>
+      p.id === editingParaphraseId
+        ? {
+            ...p,
+            original: trimmedOriginal,
+            variations: cleanedVariations,
+          }
+        : p
+    );
+
+    setParaphrases(updatedList);
+
+    try {
+      setDbError(null);
+      await updateParaphraseInDb(editingParaphraseId, {
+        original: trimmedOriginal,
+        variations: cleanedVariations,
+      });
+    } catch (error) {
+      console.error('Error updating paraphrase in database:', error);
+      setDbError('Could not update paraphrase in database.');
+    }
+
+    cancelEditingParaphrase();
   };
 
   const updateParaphraseVariation = (index, value) => {
@@ -860,8 +959,7 @@ export default function FlashcardApp() {
                     <div 
                       className="card-face cursor-pointer"
                       onClick={() => {
-                        setIsFlipped(!isFlipped);
-                        setShowAnswer(true);
+                        setIsFlipped(true);
                       }}
                     >
                       <div className="bg-white rounded-3xl p-12 min-h-[300px] flex items-center justify-center border-2 border-slate-200 shadow-xl hover:shadow-2xl transition-shadow">
@@ -875,7 +973,7 @@ export default function FlashcardApp() {
                               {currentStudyCard.translation}
                             </div>
                           )}
-                          {!showAnswer && (
+                          {!isFlipped && (
                             <div className="mt-6 text-sm text-slate-400 mono">Tap to reveal answer</div>
                           )}
                         </div>
@@ -885,7 +983,7 @@ export default function FlashcardApp() {
                     <div 
                       className="card-face card-back absolute inset-0 cursor-pointer"
                       onClick={() => {
-                        setIsFlipped(!isFlipped);
+                        setIsFlipped(false);
                       }}
                     >
                       <div className="bg-gradient-to-br from-indigo-600 to-blue-600 rounded-3xl p-12 min-h-[300px] flex items-center justify-center border-2 border-indigo-700 shadow-xl">
@@ -905,7 +1003,7 @@ export default function FlashcardApp() {
                   </div>
                 </div>
 
-                {showAnswer && (
+                {isFlipped && (
                   <div className="flex gap-4 slide-in">
                     <Button
                       onClick={() => rateCard(false)}
@@ -1357,33 +1455,109 @@ export default function FlashcardApp() {
                       key={paraphrase.id}
                       className="border border-slate-200 rounded-xl p-5 hover-lift bg-gradient-to-br from-white to-slate-50"
                     >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 mono">Original</div>
-                          <div className="font-semibold text-slate-900 text-lg mb-3">
-                            {paraphrase.original}
+                      {editingParaphraseId === paraphrase.id ? (
+                        <div className="space-y-4">
+                          <div>
+                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 mono">
+                              Original
+                            </div>
+                            <Textarea
+                              value={editingParaphraseDraft.original}
+                              onChange={(e) => updateExistingParaphraseOriginal(e.target.value)}
+                              className="min-h-[80px] text-lg"
+                            />
                           </div>
-                          <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 mono">
-                            Variations ({paraphrase.variations.length})
+                          <div>
+                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 mono">
+                              Variations ({editingParaphraseDraft.variations.length})
+                            </div>
+                            <div className="space-y-3">
+                              {editingParaphraseDraft.variations.map((variation, index) => (
+                                <div key={index} className="flex gap-2 items-start">
+                                  <span className="text-indigo-600 font-bold mono text-sm pt-3">
+                                    {index + 1}.
+                                  </span>
+                                  <Textarea
+                                    value={variation}
+                                    onChange={(e) =>
+                                      updateExistingParaphraseVariation(index, e.target.value)
+                                    }
+                                    className="min-h-[70px] flex-1"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <Button
+                              onClick={addVariationToExistingParaphrase}
+                              variant="outline"
+                              size="sm"
+                              className="mt-3"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add Variation
+                            </Button>
                           </div>
-                          <div className="space-y-2">
-                            {paraphrase.variations.map((variation, index) => (
-                              <div key={index} className="flex gap-2 text-slate-700">
-                                <span className="text-indigo-600 font-bold mono text-sm">{index + 1}.</span>
-                                <span className="flex-1">{variation}</span>
-                              </div>
-                            ))}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={saveEditingParaphrase}
+                              className="flex-1"
+                            >
+                              <Check className="w-4 h-4 mr-1" />
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={cancelEditingParaphrase}
+                              className="flex-1"
+                            >
+                              Cancel
+                            </Button>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteParaphrase(paraphrase.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-4"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      ) : (
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 mono">
+                              Original
+                            </div>
+                            <div className="font-semibold text-slate-900 text-lg mb-3">
+                              {paraphrase.original}
+                            </div>
+                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-2 mono">
+                              Variations ({paraphrase.variations.length})
+                            </div>
+                            <div className="space-y-2">
+                              {paraphrase.variations.map((variation, index) => (
+                                <div key={index} className="flex gap-2 text-slate-700">
+                                  <span className="text-indigo-600 font-bold mono text-sm">
+                                    {index + 1}.
+                                  </span>
+                                  <span className="flex-1">{variation}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1 ml-4">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => startEditingParaphrase(paraphrase)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => deleteParaphrase(paraphrase.id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

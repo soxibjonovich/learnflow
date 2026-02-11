@@ -119,3 +119,14 @@ export const deleteParaphrase = async (id) => {
 
   if (error) throw error
 }
+
+export const updateParaphrase = async (id, updates) => {
+  const { data, error } = await supabase
+    .from('paraphrases')
+    .update(updates)
+    .eq('id', id)
+    .select()
+
+  if (error) throw error
+  return data[0]
+}
