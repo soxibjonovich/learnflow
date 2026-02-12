@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { RotateCcw, Plus, Trash2, Edit2, Check, X, Brain, TrendingUp, Calendar, Upload, Download, FileText, ClipboardCheck, Award } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Award, Brain, Calendar, Check, ClipboardCheck, Download, Edit2, FileText, Plus, RotateCcw, Trash2, TrendingUp, Upload, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import {
-  fetchSharedCards,
-  addSharedCard,
-  updateSharedCard,
-  deleteSharedCard,
-  addSharedCardsBulk,
-  fetchParaphrases as fetchParaphrasesFromDb,
   addParaphrase as addParaphraseToDb,
+  addSharedCard,
+  addSharedCardsBulk,
   deleteParaphrase as deleteParaphraseFromDb,
+  deleteSharedCard,
+  fetchParaphrases as fetchParaphrasesFromDb,
+  fetchSharedCards,
   updateParaphrase as updateParaphraseInDb,
+  updateSharedCard,
 } from './lib/supabase';
 
 export default function FlashcardApp() {
@@ -30,6 +29,7 @@ export default function FlashcardApp() {
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [importFormat, setImportFormat] = useState('csv'); // 'csv', 'tsv', 'json', 'quizlet'
+  const [importUnit, setImportUnit] = useState('General'); // FIXED: Added missing state
   const [paraphrases, setParaphrases] = useState([]);
   const [newParaphrase, setNewParaphrase] = useState({ original: '', variations: ['', '', ''] });
   const [editingParaphraseId, setEditingParaphraseId] = useState(null);
@@ -59,7 +59,7 @@ export default function FlashcardApp() {
         console.error('Error loading cards:', error);
       }
     }
-
+    
     const storedParaphrases = localStorage.getItem('paraphrases');
     if (storedParaphrases) {
       try {
@@ -74,15 +74,14 @@ export default function FlashcardApp() {
   // Always try to load/merge latest data from the database
   useEffect(() => {
     const loadFromDatabase = async () => {
-      const stored = localStorage.getItem('flashcards');
-      const storedParaphrases = localStorage.getItem('paraphrases');
-
       try {
         setIsLoadingFromDb(true);
         setDbError(null);
-
-        // Always load cards from DB and merge with any locally stored cards
+        
+        // Load cards from DB
         const sharedCards = await fetchSharedCards();
+        let mergedCards = [...cards]; // Start with current state
+        
         if (sharedCards && sharedCards.length > 0) {
           const now = Date.now();
           const dbCards = sharedCards.map((card, index) => ({
@@ -98,49 +97,31 @@ export default function FlashcardApp() {
             nextReview: null,
             created: now + index,
           }));
-
-          let mergedCards = dbCards;
-
-          if (stored) {
-            try {
-              const localCards = JSON.parse(stored) || [];
-              const dbIds = new Set(dbCards.map((c) => c.id));
-              const localOnlyCards = localCards.filter((c) => !dbIds.has(c.id));
-              mergedCards = [...dbCards, ...localOnlyCards];
-            } catch (error) {
-              console.error('Error merging local cards with database cards:', error);
-            }
-          }
-
+          
+          // Merge with local cards (avoid duplicates)
+          const dbIds = new Set(dbCards.map(c => c.id));
+          const localOnlyCards = cards.filter(c => !dbIds.has(c.id));
+          mergedCards = [...dbCards, ...localOnlyCards];
+          
           setCards(mergedCards);
           buildStudyQueue(mergedCards);
         }
-
-        // Always load paraphrases from DB and merge with any locally stored paraphrases
+        
+        // Load paraphrases from DB
         const dbParaphrases = await fetchParaphrasesFromDb();
         if (dbParaphrases && dbParaphrases.length > 0) {
-          const mappedDbParaphrases = dbParaphrases.map((p) => ({
+          const mappedDbParaphrases = dbParaphrases.map(p => ({
             id: p.id,
             original: p.original || '',
             variations: Array.isArray(p.variations) ? p.variations : [],
             created: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
           }));
-
-          let mergedParaphrases = mappedDbParaphrases;
-
-          if (storedParaphrases) {
-            try {
-              const localParaphrases = JSON.parse(storedParaphrases) || [];
-              const dbParaphraseIds = new Set(mappedDbParaphrases.map((p) => p.id));
-              const localOnlyParaphrases = localParaphrases.filter(
-                (p) => !dbParaphraseIds.has(p.id)
-              );
-              mergedParaphrases = [...mappedDbParaphrases, ...localOnlyParaphrases];
-            } catch (error) {
-              console.error('Error merging local paraphrases with database paraphrases:', error);
-            }
-          }
-
+          
+          // Merge with local paraphrases
+          const dbParaphraseIds = new Set(mappedDbParaphrases.map(p => p.id));
+          const localOnlyParaphrases = paraphrases.filter(p => !dbParaphraseIds.has(p.id));
+          const mergedParaphrases = [...mappedDbParaphrases, ...localOnlyParaphrases];
+          
           setParaphrases(mergedParaphrases);
         }
       } catch (error) {
@@ -150,13 +131,13 @@ export default function FlashcardApp() {
         setIsLoadingFromDb(false);
       }
     };
-
+    
     loadFromDatabase();
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   // Save cards to localStorage whenever cards change
   useEffect(() => {
-    if (cards.length >= 0) {
+    if (cards.length > 0) {
       localStorage.setItem('flashcards', JSON.stringify(cards));
       updateStats(cards);
     }
@@ -182,7 +163,7 @@ export default function FlashcardApp() {
       .filter(card => !card.nextReview || card.nextReview <= now)
       .sort((a, b) => a.box - b.box);
     
-    // Extreme randomization - shuffle using Fisher-Yates
+    // Fisher-Yates shuffle
     const shuffled = [...due];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -195,7 +176,7 @@ export default function FlashcardApp() {
 
   const addCard = async () => {
     if (!newCard.front.trim() || !newCard.back.trim()) return;
-
+    
     const baseCard = {
       front: newCard.front.trim(),
       back: newCard.back.trim(),
@@ -203,13 +184,13 @@ export default function FlashcardApp() {
       translation: newCard.translation.trim(),
       unit: newCard.unit.trim() || 'General',
     };
-
+    
     let cardToStore;
-
     try {
       setDbError(null);
       const saved = await addSharedCard(baseCard);
       const now = Date.now();
+      
       cardToStore = {
         id: saved.id,
         front: saved.front || baseCard.front,
@@ -227,6 +208,7 @@ export default function FlashcardApp() {
       console.error('Error saving card to database, falling back to local only:', error);
       setDbError('Could not save card to database. Saved locally instead.');
       const now = Date.now();
+      
       cardToStore = {
         id: now,
         ...baseCard,
@@ -237,7 +219,7 @@ export default function FlashcardApp() {
         created: now,
       };
     }
-
+    
     const updated = [...cards, cardToStore];
     setCards(updated);
     buildStudyQueue(updated);
@@ -248,7 +230,7 @@ export default function FlashcardApp() {
     const updated = cards.filter(c => c.id !== id);
     setCards(updated);
     buildStudyQueue(updated);
-
+    
     try {
       setDbError(null);
       await deleteSharedCard(id);
@@ -259,7 +241,7 @@ export default function FlashcardApp() {
   };
 
   const updateCard = async (id, front, back, example, translation, unit) => {
-    const updated = cards.map(c => 
+    const updated = cards.map(c =>
       c.id === id
         ? {
             ...c,
@@ -271,9 +253,10 @@ export default function FlashcardApp() {
           }
         : c
     );
+    
     setCards(updated);
     setEditingId(null);
-
+    
     try {
       setDbError(null);
       await updateSharedCard(id, {
@@ -289,7 +272,7 @@ export default function FlashcardApp() {
     }
   };
 
-  // Leitner System: boxes 1-5, intervals increase with each box
+  // Leitner System intervals
   const getNextReviewTime = (box) => {
     const intervals = {
       1: 0,           // Review immediately
@@ -303,9 +286,10 @@ export default function FlashcardApp() {
 
   const rateCard = (correct) => {
     if (studyQueue.length === 0) return;
-
+    
     const currentCard = studyQueue[currentCardIndex];
     const cardIndex = cards.findIndex(c => c.id === currentCard.id);
+    if (cardIndex === -1) return;
     
     const updatedCards = [...cards];
     const card = { ...updatedCards[cardIndex] };
@@ -319,21 +303,18 @@ export default function FlashcardApp() {
     card.reviews += 1;
     card.lastReview = Date.now();
     card.nextReview = getNextReviewTime(card.box);
-    
     updatedCards[cardIndex] = card;
-
-    // Prepare next queue before updating UI
+    
+    // Prepare next queue
     const newQueue = studyQueue.filter((_, i) => i !== currentCardIndex);
     const nextIndex = newQueue.length > 0
       ? Math.min(currentCardIndex, newQueue.length - 1)
       : 0;
-
-    // Reset flip state and temporarily hide the hint while we transition
+    
+    // Reset flip state and temporarily hide hint for smooth transition
     setIsFlipped(false);
     setShowHint(false);
-
-    // Apply queue/card changes on the next tick so the flip back
-    // feels smoother and avoids brief answer/hint glitches.
+    
     setTimeout(() => {
       setCards(updatedCards);
       setStudyQueue(newQueue);
@@ -370,17 +351,16 @@ export default function FlashcardApp() {
       alert('No cards to export!');
       return;
     }
-
+    
     let content = '';
     let filename = '';
     let mimeType = '';
-
+    
     if (format === 'json') {
       content = JSON.stringify(cards, null, 2);
       filename = 'learnflow-cards.json';
       mimeType = 'application/json';
     } else if (format === 'csv') {
-      // CSV format: front,back,translation,example
       content = 'Front,Back,Translation,Example\n';
       cards.forEach(card => {
         const escapeCsv = (str) => `"${(str || '').replace(/"/g, '""')}"`;
@@ -389,7 +369,6 @@ export default function FlashcardApp() {
       filename = 'learnflow-cards.csv';
       mimeType = 'text/csv';
     } else if (format === 'tsv') {
-      // TSV format: front\tback\ttranslation\texample
       content = 'Front\tBack\tTranslation\tExample\n';
       cards.forEach(card => {
         content += `${card.front}\t${card.back}\t${card.translation || ''}\t${card.example || ''}\n`;
@@ -397,14 +376,13 @@ export default function FlashcardApp() {
       filename = 'learnflow-cards.tsv';
       mimeType = 'text/tab-separated-values';
     } else if (format === 'quizlet') {
-      // Quizlet format: front\tback (one per line)
       cards.forEach(card => {
         content += `${card.front}\t${card.back}\n`;
       });
       filename = 'learnflow-cards-quizlet.txt';
       mimeType = 'text/plain';
     }
-
+    
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -421,27 +399,26 @@ export default function FlashcardApp() {
       alert('Please paste your data first!');
       return;
     }
-
+    
     const parsedCards = [];
-
     try {
       if (importFormat === 'json') {
         const parsed = JSON.parse(importText);
-        parsed.forEach((card) => {
+        parsed.forEach(card => {
           parsedCards.push({
             front: card.front || '',
             back: card.back || '',
             translation: card.translation || '',
             example: card.example || '',
-            unit: 'General',
+            unit: importUnit || 'General', // FIXED: Use importUnit state
           });
         });
       } else if (importFormat === 'csv') {
         const lines = importText.trim().split('\n');
         const hasHeader = lines[0].toLowerCase().includes('front') || lines[0].toLowerCase().includes('term');
         const dataLines = hasHeader ? lines.slice(1) : lines;
-
-        dataLines.forEach((line, index) => {
+        
+        dataLines.forEach(line => {
           if (!line.trim()) return;
           
           // Parse CSV properly handling quoted fields
@@ -466,14 +443,14 @@ export default function FlashcardApp() {
             }
           }
           fields.push(current.trim());
-
+          
           if (fields.length >= 2) {
             parsedCards.push({
               front: fields[0] || '',
               back: fields[1] || '',
               translation: fields[2] || '',
               example: fields[3] || '',
-              unit: 'General',
+              unit: importUnit || 'General', // FIXED: Use importUnit state
             });
           }
         });
@@ -481,31 +458,33 @@ export default function FlashcardApp() {
         const lines = importText.trim().split('\n');
         const hasHeader = importFormat === 'tsv' && lines[0].toLowerCase().includes('front');
         const dataLines = hasHeader ? lines.slice(1) : lines;
-
-        dataLines.forEach((line, index) => {
+        
+        dataLines.forEach(line => {
           if (!line.trim()) return;
           const fields = line.split('\t');
+          
           if (fields.length >= 2) {
             parsedCards.push({
               front: fields[0]?.trim() || '',
               back: fields[1]?.trim() || '',
               translation: fields[2]?.trim() || '',
               example: fields[3]?.trim() || '',
-              unit: 'General',
+              unit: importUnit || 'General', // FIXED: Use importUnit state
             });
           }
         });
       }
-
+      
       if (parsedCards.length === 0) {
         alert('No valid cards found in the input!');
         return;
       }
-
+      
       try {
         setDbError(null);
         const saved = await addSharedCardsBulk(parsedCards);
         const now = Date.now();
+        
         const dbBackedCards = saved.map((card, index) => ({
           id: card.id,
           front: card.front || parsedCards[index].front,
@@ -519,36 +498,38 @@ export default function FlashcardApp() {
           nextReview: null,
           created: now + index,
         }));
-
+        
         const updated = [...cards, ...dbBackedCards];
         setCards(updated);
         buildStudyQueue(updated);
         setImportText('');
+        setImportUnit('General'); // FIXED: Reset import unit
         setShowImport(false);
         alert(`Successfully imported ${dbBackedCards.length} cards (saved to database)!`);
       } catch (error) {
         console.error('Error importing cards to database, falling back to local only:', error);
         setDbError('Could not import cards to database. Imported locally instead.');
-
         const now = Date.now();
+        
         const localOnlyCards = parsedCards.map((card, index) => ({
           id: now + index,
           front: card.front,
           back: card.back,
           translation: card.translation,
           example: card.example,
-          unit: card.unit,
+          unit: card.unit || importUnit || 'General', // FIXED: Use importUnit state
           box: 1,
           reviews: 0,
           lastReview: null,
           nextReview: null,
           created: now + index,
         }));
-
+        
         const updated = [...cards, ...localOnlyCards];
         setCards(updated);
         buildStudyQueue(updated);
         setImportText('');
+        setImportUnit('General'); // FIXED: Reset import unit
         setShowImport(false);
         alert(`Successfully imported ${localOnlyCards.length} cards locally (database unavailable).`);
       }
@@ -559,20 +540,19 @@ export default function FlashcardApp() {
 
   const addParaphrase = async () => {
     if (!newParaphrase.original.trim()) return;
-    
     const validVariations = newParaphrase.variations.filter(v => v.trim());
     if (validVariations.length === 0) return;
-
+    
     const baseParaphrase = {
       original: newParaphrase.original.trim(),
       variations: validVariations.map(v => v.trim()),
     };
-
+    
     let paraphraseToStore;
-
     try {
       setDbError(null);
       const saved = await addParaphraseToDb(baseParaphrase);
+      
       paraphraseToStore = {
         id: saved.id,
         original: saved.original || baseParaphrase.original,
@@ -582,6 +562,7 @@ export default function FlashcardApp() {
     } catch (error) {
       console.error('Error saving paraphrase to database, falling back to local only:', error);
       setDbError('Could not save paraphrase to database. Saved locally instead.');
+      
       paraphraseToStore = {
         id: Date.now(),
         original: baseParaphrase.original,
@@ -589,14 +570,14 @@ export default function FlashcardApp() {
         created: Date.now(),
       };
     }
-
+    
     setParaphrases([...paraphrases, paraphraseToStore]);
     setNewParaphrase({ original: '', variations: ['', '', ''] });
   };
 
   const deleteParaphrase = async (id) => {
     setParaphrases(paraphrases.filter(p => p.id !== id));
-
+    
     try {
       setDbError(null);
       await deleteParaphraseFromDb(id);
@@ -620,14 +601,14 @@ export default function FlashcardApp() {
   };
 
   const updateExistingParaphraseOriginal = (value) => {
-    setEditingParaphraseDraft((prev) => ({
+    setEditingParaphraseDraft(prev => ({
       ...prev,
       original: value,
     }));
   };
 
   const updateExistingParaphraseVariation = (index, value) => {
-    setEditingParaphraseDraft((prev) => {
+    setEditingParaphraseDraft(prev => {
       const next = [...prev.variations];
       next[index] = value;
       return {
@@ -638,7 +619,7 @@ export default function FlashcardApp() {
   };
 
   const addVariationToExistingParaphrase = () => {
-    setEditingParaphraseDraft((prev) => ({
+    setEditingParaphraseDraft(prev => ({
       ...prev,
       variations: [...prev.variations, ''],
     }));
@@ -646,15 +627,15 @@ export default function FlashcardApp() {
 
   const saveEditingParaphrase = async () => {
     if (!editingParaphraseId) return;
-
+    
     const trimmedOriginal = editingParaphraseDraft.original.trim();
     const cleanedVariations = editingParaphraseDraft.variations
-      .map((v) => v.trim())
-      .filter((v) => v);
-
+      .map(v => v.trim())
+      .filter(v => v);
+    
     if (!trimmedOriginal || cleanedVariations.length === 0) return;
-
-    const updatedList = paraphrases.map((p) =>
+    
+    const updatedList = paraphrases.map(p =>
       p.id === editingParaphraseId
         ? {
             ...p,
@@ -663,9 +644,9 @@ export default function FlashcardApp() {
           }
         : p
     );
-
+    
     setParaphrases(updatedList);
-
+    
     try {
       setDbError(null);
       await updateParaphraseInDb(editingParaphraseId, {
@@ -676,7 +657,7 @@ export default function FlashcardApp() {
       console.error('Error updating paraphrase in database:', error);
       setDbError('Could not update paraphrase in database.');
     }
-
+    
     cancelEditingParaphrase();
   };
 
@@ -699,18 +680,18 @@ export default function FlashcardApp() {
       alert('No cards available for testing!');
       return;
     }
-
+    
     // Filter cards by selected units
     let filteredCards = cards;
     if (selectedUnits.length > 0) {
       filteredCards = cards.filter(card => selectedUnits.includes(card.unit || 'General'));
     }
-
+    
     if (filteredCards.length === 0) {
       alert('No cards found in selected units!');
       return;
     }
-
+    
     setTestType(type);
     
     // Shuffle cards for test
@@ -722,7 +703,7 @@ export default function FlashcardApp() {
     setTestAnswers({});
     setTestComplete(false);
     
-    if (type === 'multiple-choice') {
+    if (type === 'multiple-choice' && testSet.length > 0) {
       generateMultipleChoiceOptions(testSet[0], testSet);
     }
   };
@@ -731,10 +712,11 @@ export default function FlashcardApp() {
     const correctAnswer = currentCard.back;
     const otherCards = allTestCards.filter(c => c.id !== currentCard.id);
     
-    // Get 3 wrong answers
+    // Get 3 wrong answers (or fewer if not enough cards)
+    const wrongCount = Math.min(3, otherCards.length);
     const wrongAnswers = otherCards
       .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
+      .slice(0, wrongCount)
       .map(c => c.back);
     
     // Combine and shuffle
@@ -743,6 +725,8 @@ export default function FlashcardApp() {
   };
 
   const answerTestQuestion = (answer) => {
+    if (currentTestIndex >= testCards.length) return;
+    
     const currentCard = testCards[currentTestIndex];
     const newAnswers = {
       ...testAnswers,
@@ -752,12 +736,14 @@ export default function FlashcardApp() {
         isCorrect: answer.toLowerCase().trim() === currentCard.back.toLowerCase().trim()
       }
     };
+    
     setTestAnswers(newAnswers);
-
+    
     if (currentTestIndex < testCards.length - 1) {
       const nextIndex = currentTestIndex + 1;
       setCurrentTestIndex(nextIndex);
-      if (testType === 'multiple-choice') {
+      
+      if (testType === 'multiple-choice' && nextIndex < testCards.length) {
         generateMultipleChoiceOptions(testCards[nextIndex], testCards);
       }
     } else {
@@ -768,7 +754,11 @@ export default function FlashcardApp() {
   const calculateTestScore = () => {
     const correctCount = Object.values(testAnswers).filter(a => a.isCorrect).length;
     const total = testCards.length;
-    return { correct: correctCount, total, percentage: Math.round((correctCount / total) * 100) };
+    return { 
+      correct: correctCount, 
+      total, 
+      percentage: total > 0 ? Math.round((correctCount / total) * 100) : 0 
+    };
   };
 
   const resetTest = () => {
@@ -799,38 +789,30 @@ export default function FlashcardApp() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-8">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-        
         body {
           font-family: 'Lexend', sans-serif;
         }
-        
         .mono {
           font-family: 'Space Mono', monospace;
         }
-        
         .card-flip {
           perspective: 1000px;
         }
-        
         .card-inner {
           will-change: transform;
           transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
           transform-style: preserve-3d;
         }
-        
         .card-flipped {
           transform: rotateY(180deg);
         }
-        
         .card-face {
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
         }
-        
         .card-back {
           transform: rotateY(180deg);
         }
-        
         @keyframes slideIn {
           from {
             opacity: 0;
@@ -841,21 +823,18 @@ export default function FlashcardApp() {
             transform: translateY(0);
           }
         }
-        
         .slide-in {
           animation: slideIn 0.4s ease-out;
         }
-        
         .hover-lift {
           transition: transform 0.2s, box-shadow 0.2s;
         }
-        
         .hover-lift:hover {
           transform: translateY(-2px);
           box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
         }
       `}</style>
-
+      
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 slide-in">
@@ -865,7 +844,7 @@ export default function FlashcardApp() {
           </div>
           <p className="text-slate-600 text-sm mono">Spaced repetition • Leitner system • Efficient learning</p>
         </div>
-
+        
         {/* Stats Bar */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-slate-200/50 shadow-lg slide-in">
           <div className="grid grid-cols-4 gap-4 mb-4">
@@ -886,12 +865,14 @@ export default function FlashcardApp() {
               <div className="text-xs text-slate-500 uppercase tracking-wider mono">New</div>
             </div>
           </div>
+          
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-slate-600 mono">
               <span>Progress</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-2" />
+            
             {(isLoadingFromDb || dbError) && (
               <div className="mt-2 text-xs mono">
                 {isLoadingFromDb && (
@@ -904,7 +885,7 @@ export default function FlashcardApp() {
             )}
           </div>
         </div>
-
+        
         {/* Mode Switcher */}
         <div className="flex gap-2 mb-6 slide-in flex-wrap">
           <Button
@@ -951,7 +932,7 @@ export default function FlashcardApp() {
             Manage
           </Button>
         </div>
-
+        
         {/* Study Mode */}
         {mode === 'study' && (
           <div className="slide-in">
@@ -971,10 +952,10 @@ export default function FlashcardApp() {
                     Shuffle
                   </Button>
                 </div>
-
+                
                 <div className="card-flip mb-6">
                   <div className={`card-inner ${isFlipped ? 'card-flipped' : ''}`}>
-                    <div 
+                    <div
                       className="card-face cursor-pointer"
                       onClick={() => {
                         if (!isFlipped) {
@@ -1000,8 +981,8 @@ export default function FlashcardApp() {
                         </div>
                       </div>
                     </div>
-
-                    <div 
+                    
+                    <div
                       className="card-face card-back absolute inset-0 cursor-pointer"
                       onClick={() => {
                         setIsFlipped(false);
@@ -1023,7 +1004,7 @@ export default function FlashcardApp() {
                     </div>
                   </div>
                 </div>
-
+                
                 {isFlipped && (
                   <div className="flex gap-4 slide-in">
                     <Button
@@ -1043,7 +1024,7 @@ export default function FlashcardApp() {
                     </Button>
                   </div>
                 )}
-
+                
                 <div className="mt-4 text-center text-sm text-slate-500 mono">
                   Box {currentStudyCard.box} • Reviews: {currentStudyCard.reviews}
                 </div>
@@ -1061,7 +1042,7 @@ export default function FlashcardApp() {
             )}
           </div>
         )}
-
+        
         {/* Create Mode */}
         {mode === 'create' && (
           <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-lg slide-in">
@@ -1113,8 +1094,8 @@ export default function FlashcardApp() {
                   className="min-h-[80px] text-base"
                 />
               </div>
-              <Button 
-                onClick={addCard} 
+              <Button
+                onClick={addCard}
                 className="w-full h-12 text-lg font-medium hover-lift"
                 disabled={!newCard.front.trim() || !newCard.back.trim()}
               >
@@ -1124,7 +1105,7 @@ export default function FlashcardApp() {
             </div>
           </div>
         )}
-
+        
         {/* Test Mode */}
         {mode === 'test' && (
           <div className="slide-in">
@@ -1138,7 +1119,7 @@ export default function FlashcardApp() {
                     Challenge yourself with a quick test! Choose your preferred format below.
                   </p>
                 </div>
-
+                
                 {/* Unit Selection */}
                 {getUniqueUnits().length > 1 && (
                   <div className="mb-6 pb-6 border-b border-slate-200">
@@ -1164,14 +1145,14 @@ export default function FlashcardApp() {
                       ))}
                     </div>
                     <p className="text-xs text-slate-500 mt-2">
-                      {selectedUnits.length === 0 
-                        ? 'No units selected - will test all cards' 
+                      {selectedUnits.length === 0
+                        ? 'No units selected - will test all cards'
                         : `Testing ${cards.filter(c => selectedUnits.includes(c.unit || 'General')).length} cards from ${selectedUnits.length} unit(s)`
                       }
                     </p>
                   </div>
                 )}
-
+                
                 <div className="grid md:grid-cols-2 gap-4 mb-6">
                   <button
                     onClick={() => startTest('written')}
@@ -1194,7 +1175,6 @@ export default function FlashcardApp() {
                       </div>
                     </div>
                   </button>
-
                   <button
                     onClick={() => startTest('multiple-choice')}
                     disabled={cards.length < 4}
@@ -1217,7 +1197,7 @@ export default function FlashcardApp() {
                     </div>
                   </button>
                 </div>
-
+                
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                   <div className="text-sm text-slate-700 mono">
                     <strong>Test Details:</strong>
@@ -1229,13 +1209,12 @@ export default function FlashcardApp() {
                     </ul>
                   </div>
                 </div>
-
+                
                 {cards.length === 0 && (
                   <div className="mt-4 text-center text-slate-500 text-sm">
                     You need to create some cards before taking a test!
                   </div>
                 )}
-
                 {cards.length > 0 && cards.length < 4 && (
                   <div className="mt-4 text-center text-amber-600 text-sm">
                     Multiple choice requires at least 4 cards. Create more or try written test!
@@ -1255,7 +1234,7 @@ export default function FlashcardApp() {
                     </div>
                   </div>
                   <Progress value={((currentTestIndex) / testCards.length) * 100} className="h-2 mb-6" />
-
+                  
                   <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-8 mb-6">
                     <div className="text-sm text-slate-500 uppercase tracking-wider mb-3 mono">Question</div>
                     <div className="text-2xl font-bold text-slate-900 mb-4">
@@ -1267,7 +1246,7 @@ export default function FlashcardApp() {
                       </div>
                     )}
                   </div>
-
+                  
                   {testType === 'written' ? (
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2 mono">Your Answer</label>
@@ -1279,10 +1258,7 @@ export default function FlashcardApp() {
                           if (e.key === 'Enter') {
                             const answer = e.target.value;
                             answerTestQuestion(answer);
-                            setTimeout(() => {
-                              const nextInput = document.getElementById(`answer-${currentTestIndex + 1}`);
-                              if (nextInput) nextInput.value = '';
-                            }, 0);
+                            e.target.value = '';
                           }
                         }}
                       />
@@ -1290,10 +1266,7 @@ export default function FlashcardApp() {
                         onClick={() => {
                           const answer = document.getElementById(`answer-${currentTestIndex}`).value;
                           answerTestQuestion(answer);
-                          setTimeout(() => {
-                            const nextInput = document.getElementById(`answer-${currentTestIndex + 1}`);
-                            if (nextInput) nextInput.value = '';
-                          }, 0);
+                          document.getElementById(`answer-${currentTestIndex}`).value = '';
                         }}
                         className="w-full h-12 hover-lift"
                       >
@@ -1331,7 +1304,7 @@ export default function FlashcardApp() {
                     {calculateTestScore().correct} / {calculateTestScore().total} correct
                   </div>
                 </div>
-
+                
                 <div className="space-y-3 mb-8">
                   {testCards.map((card, index) => {
                     const answer = testAnswers[card.id];
@@ -1375,7 +1348,7 @@ export default function FlashcardApp() {
                     );
                   })}
                 </div>
-
+                
                 <div className="flex gap-4">
                   <Button
                     onClick={() => {
@@ -1402,7 +1375,7 @@ export default function FlashcardApp() {
             )}
           </div>
         )}
-
+        
         {/* Paraphrases Mode */}
         {mode === 'paraphrases' && (
           <div className="space-y-6 slide-in">
@@ -1411,7 +1384,6 @@ export default function FlashcardApp() {
               <p className="text-slate-600 mb-6 text-sm">
                 Learn to express the same idea in different ways. Add an original phrase and multiple variations.
               </p>
-              
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2 mono">Original Phrase</label>
@@ -1422,7 +1394,6 @@ export default function FlashcardApp() {
                     className="min-h-[80px] text-lg"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2 mono">Paraphrase Variations</label>
                   <div className="space-y-3">
@@ -1448,9 +1419,8 @@ export default function FlashcardApp() {
                     Add Another Variation
                   </Button>
                 </div>
-
-                <Button 
-                  onClick={addParaphrase} 
+                <Button
+                  onClick={addParaphrase}
                   className="w-full h-12 text-lg font-medium hover-lift"
                   disabled={!newParaphrase.original.trim() || !newParaphrase.variations.some(v => v.trim())}
                 >
@@ -1459,11 +1429,10 @@ export default function FlashcardApp() {
                 </Button>
               </div>
             </div>
-
+            
             {/* Paraphrases List */}
             <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-lg">
               <h3 className="text-xl font-bold text-slate-900 mb-4">Your Paraphrases ({paraphrases.length})</h3>
-              
               {paraphrases.length === 0 ? (
                 <div className="text-center py-8 text-slate-500">
                   <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
@@ -1586,7 +1555,7 @@ export default function FlashcardApp() {
             </div>
           </div>
         )}
-
+        
         {/* Manage Mode */}
         {mode === 'manage' && (
           <div className="space-y-4 slide-in">
@@ -1659,7 +1628,7 @@ export default function FlashcardApp() {
                 </Button>
               </div>
             </div>
-
+            
             {cards.length === 0 ? (
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-slate-200/50">
                 <p className="text-slate-600 mb-4">No cards yet. Create your first card to start learning!</p>
@@ -1699,13 +1668,13 @@ export default function FlashcardApp() {
                             id={`back-${card.id}`}
                           />
                         </div>
-                      <div>
-                        <label className="text-xs text-slate-500 mono mb-1 block">Unit/Category</label>
-                        <Input
-                          defaultValue={card.unit || 'General'}
-                          id={`unit-${card.id}`}
-                        />
-                      </div>
+                        <div>
+                          <label className="text-xs text-slate-500 mono mb-1 block">Unit/Category</label>
+                          <Input
+                            defaultValue={card.unit || 'General'}
+                            id={`unit-${card.id}`}
+                          />
+                        </div>
                         <div>
                           <label className="text-xs text-slate-500 mono mb-1 block">Example</label>
                           <Textarea
@@ -1783,7 +1752,7 @@ export default function FlashcardApp() {
             )}
           </div>
         )}
-
+        
         {/* Import Modal */}
         {showImport && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 slide-in">
@@ -1796,12 +1765,13 @@ export default function FlashcardApp() {
                   onClick={() => {
                     setShowImport(false);
                     setImportText('');
+                    setImportUnit('General'); // FIXED: Reset import unit
                   }}
                 >
                   <X className="w-5 h-5" />
                 </Button>
               </div>
-
+              
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2 mono">Select Format</label>
@@ -1852,7 +1822,7 @@ export default function FlashcardApp() {
                     </button>
                   </div>
                 </div>
-
+                
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2 mono">
                     Format Instructions
@@ -1931,7 +1901,7 @@ export default function FlashcardApp() {
                     )}
                   </div>
                 </div>
-
+                
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2 mono">
                     Paste Your Data
@@ -1943,7 +1913,22 @@ export default function FlashcardApp() {
                     className="min-h-[200px] font-mono text-sm"
                   />
                 </div>
-
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2 mono">
+                    Unit for all imported cards
+                  </label>
+                  <Input
+                    value={importUnit}
+                    onChange={(e) => setImportUnit(e.target.value)}
+                    placeholder="e.g., Unit 1, Chapter 3 (default: General)"
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    This unit will be applied to every imported card.
+                  </p>
+                </div>
+                
                 <div className="flex gap-3">
                   <Button
                     onClick={importCards}
@@ -1957,6 +1942,7 @@ export default function FlashcardApp() {
                     onClick={() => {
                       setShowImport(false);
                       setImportText('');
+                      setImportUnit('General'); // FIXED: Reset import unit
                     }}
                     variant="outline"
                     className="h-12"
