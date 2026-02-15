@@ -25,21 +25,16 @@ const LEVEL_OPTIONS = [
   'Upper-Intermediate',
   'Advanced',
   'Pre-IELTS',
-  'IELTS 5.0',
-  'IELTS 5.5',
-  'IELTS 6.0',
-  'IELTS 6.5',
-  'IELTS 7.0',
-  'IELTS 7.5',
-  'IELTS 8.0+'
+  'IELTS B1-B2',
+  'IELTS B2-C1',
+  'IELTS C1-C2',
 ];
 
 const UNIT_OPTIONS = [
   'General',
   'Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5',
   'Unit 6', 'Unit 7', 'Unit 8', 'Unit 9', 'Unit 10',
-  'Week 1', 'Week 2', 'Week 3', 'Week 4',
-  'Chapter 1', 'Chapter 2', 'Chapter 3', 'Chapter 4', 'Chapter 5'
+  'Unit 11', 'Unit 12', 'Unit 13', 'Unit 14',
 ];
 
 export default function FlashcardApp() {
