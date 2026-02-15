@@ -5,18 +5,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Award, Brain, Calendar, Check, ClipboardCheck, Download, Edit2, FileText, Plus, RotateCcw, Trash2, TrendingUp, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
-  addParaphrase as addParaphraseToDb,
-  addSharedCard,
-  addSharedCardsBulk,
-  deleteParaphrase as deleteParaphraseFromDb,
-  deleteSharedCard,
-  fetchParaphrases as fetchParaphrasesFromDb,
-  fetchSharedCards,
-  updateParaphrase as updateParaphraseInDb,
-  updateSharedCard,
+    addParaphrase as addParaphraseToDb,
+    addSharedCard,
+    addSharedCardsBulk,
+    deleteParaphrase as deleteParaphraseFromDb,
+    deleteSharedCard,
+    fetchParaphrases as fetchParaphrasesFromDb,
+    fetchSharedCards,
+    updateParaphrase as updateParaphraseInDb,
+    updateSharedCard,
 } from './lib/supabase';
 
-// Level and Unit options for dropdowns
 const LEVEL_OPTIONS = [
   'Beginner',
   'Elementary', 
@@ -42,6 +41,7 @@ export default function FlashcardApp() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(true);
+  const [isReverseMode, setIsReverseMode] = useState(false);
   const [mode, setMode] = useState('study'); // 'study', 'create', 'manage', 'paraphrases', 'test'
   const [newCard, setNewCard] = useState({ 
     front: '', back: '', example: '', translation: '', 
@@ -52,7 +52,7 @@ export default function FlashcardApp() {
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [importFormat, setImportFormat] = useState('csv'); // 'csv', 'tsv', 'json', 'quizlet'
-  const [importUnit, setImportUnit] = useState('General'); // FIXED: Added missing state
+  const [importUnit, setImportUnit] = useState('General');
   const [importLevel, setImportLevel] = useState('Beginner');
   const [selectedLevels, setSelectedLevels] = useState([]);
   const [filterUnit, setFilterUnit] = useState('');
@@ -922,7 +922,10 @@ export default function FlashcardApp() {
         {/* Mode Switcher */}
         <div className="flex gap-2 mb-6 slide-in flex-wrap">
           <Button
-            onClick={() => setMode('study')}
+            onClick={() => {
+              setMode('study');
+              setIsFlipped(false); // Reset flip state
+            }}
             variant={mode === 'study' ? 'default' : 'outline'}
             className="flex-1 font-medium min-w-[120px]"
           >
@@ -971,19 +974,46 @@ export default function FlashcardApp() {
           <div className="slide-in">
             {studyQueue.length > 0 ? (
               <>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-4 gap-2">
                   <div className="inline-block bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-sm font-medium mono">
                     {currentCardIndex + 1} / {studyQueue.length} due for review
                   </div>
-                  <Button
-                    onClick={reshuffleQueue}
-                    variant="outline"
-                    size="sm"
-                    className="hover-lift"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Shuffle
-                  </Button>
+                  <div className="flex gap-2">
+                    {/* ✨ NEW: Reverse Mode Toggle */}
+                    <Button
+                      onClick={() => {
+                        setIsReverseMode(!isReverseMode);
+                        setIsFlipped(false); // Reset flip when switching modes
+                      }}
+                      variant={isReverseMode ? "default" : "outline"}
+                      size="sm"
+                      className="hover-lift"
+                    >
+                      <svg 
+                        className="w-4 h-4 mr-2" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" 
+                        />
+                      </svg>
+                      {isReverseMode ? 'Reverse' : 'Normal'}
+                    </Button>
+                    <Button
+                      onClick={reshuffleQueue}
+                      variant="outline"
+                      size="sm"
+                      className="hover-lift"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Shuffle
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="card-flip mb-6">
@@ -1001,11 +1031,16 @@ export default function FlashcardApp() {
                         <div className="text-center max-w-2xl">
                           <div className="text-sm text-slate-400 uppercase tracking-wider mb-4 mono">Question</div>
                           <div className="text-3xl font-semibold text-slate-900 leading-relaxed mb-6">
-                            {currentStudyCard.front}
+                            {isReverseMode ? currentStudyCard.back : currentStudyCard.front}
                           </div>
-                          {currentStudyCard.translation && (
+                          {currentStudyCard.translation && !isReverseMode && (
                             <div className="text-lg text-indigo-600 font-medium mb-4 mono">
                               {currentStudyCard.translation}
+                            </div>
+                          )}
+                          {isReverseMode && (
+                            <div className="text-sm text-amber-600 font-medium mb-4 mono bg-amber-50 px-3 py-1 rounded inline-block">
+                              🔄 Reverse Mode: Think of the word!
                             </div>
                           )}
                           {!isFlipped && showHint && (
@@ -1025,8 +1060,13 @@ export default function FlashcardApp() {
                         <div className="text-center max-w-2xl">
                           <div className="text-sm text-indigo-200 uppercase tracking-wider mb-4 mono">Answer</div>
                           <div className="text-3xl font-semibold text-white leading-relaxed mb-6">
-                            {currentStudyCard.back}
+                            {isReverseMode ? currentStudyCard.front : currentStudyCard.back}
                           </div>
+                          {isReverseMode && currentStudyCard.translation && (
+                            <div className="text-base text-indigo-100 mb-4 mono">
+                              Translation: {currentStudyCard.translation}
+                            </div>
+                          )}
                           {currentStudyCard.example && (
                             <div className="text-base text-indigo-100 italic border-t border-indigo-400/30 pt-4 mt-4">
                               "{currentStudyCard.example}"
