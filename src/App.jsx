@@ -16,25 +16,56 @@ import {
   updateSharedCard,
 } from './lib/supabase';
 
+// Level and Unit options for dropdowns
+const LEVEL_OPTIONS = [
+  'Beginner',
+  'Elementary', 
+  'Pre-Intermediate',
+  'Intermediate',
+  'Upper-Intermediate',
+  'Advanced',
+  'Pre-IELTS',
+  'IELTS 5.0',
+  'IELTS 5.5',
+  'IELTS 6.0',
+  'IELTS 6.5',
+  'IELTS 7.0',
+  'IELTS 7.5',
+  'IELTS 8.0+'
+];
+
+const UNIT_OPTIONS = [
+  'General',
+  'Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5',
+  'Unit 6', 'Unit 7', 'Unit 8', 'Unit 9', 'Unit 10',
+  'Week 1', 'Week 2', 'Week 3', 'Week 4',
+  'Chapter 1', 'Chapter 2', 'Chapter 3', 'Chapter 4', 'Chapter 5'
+];
+
 export default function FlashcardApp() {
   const [cards, setCards] = useState([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const [mode, setMode] = useState('study'); // 'study', 'create', 'manage', 'paraphrases', 'test'
-  const [newCard, setNewCard] = useState({ front: '', back: '', example: '', translation: '', box: 1, unit: '' });
-  const [editingId, setEditingId] = useState(null);
+  const [newCard, setNewCard] = useState({ 
+    front: '', back: '', example: '', translation: '', 
+    box: 1, unit: 'General', level: 'Beginner' 
+  });  const [editingId, setEditingId] = useState(null);
   const [stats, setStats] = useState({ total: 0, mastered: 0, learning: 0, new: 0 });
   const [studyQueue, setStudyQueue] = useState([]);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [importFormat, setImportFormat] = useState('csv'); // 'csv', 'tsv', 'json', 'quizlet'
   const [importUnit, setImportUnit] = useState('General'); // FIXED: Added missing state
+  const [importLevel, setImportLevel] = useState('Beginner');
+  const [selectedLevels, setSelectedLevels] = useState([]);
+  const [filterUnit, setFilterUnit] = useState('');
+  const [filterLevel, setFilterLevel] = useState('');
   const [paraphrases, setParaphrases] = useState([]);
   const [newParaphrase, setNewParaphrase] = useState({ original: '', variations: ['', '', ''] });
   const [editingParaphraseId, setEditingParaphraseId] = useState(null);
   const [editingParaphraseDraft, setEditingParaphraseDraft] = useState({ original: '', variations: [] });
-  
   // Test mode state
   const [testCards, setTestCards] = useState([]);
   const [currentTestIndex, setCurrentTestIndex] = useState(0);
@@ -183,6 +214,7 @@ export default function FlashcardApp() {
       example: newCard.example.trim(),
       translation: newCard.translation.trim(),
       unit: newCard.unit.trim() || 'General',
+      level: newCard.level || 'Beginner', // ADD THIS
     };
     
     let cardToStore;
@@ -223,7 +255,7 @@ export default function FlashcardApp() {
     const updated = [...cards, cardToStore];
     setCards(updated);
     buildStudyQueue(updated);
-    setNewCard({ front: '', back: '', example: '', translation: '', box: 1, unit: '' });
+    setNewCard({ front: '', back: '', example: '', translation: '', box: 1, unit: 'General', level: 'Beginner' });
   };
 
   const deleteCard = async (id) => {
@@ -240,7 +272,7 @@ export default function FlashcardApp() {
     }
   };
 
-  const updateCard = async (id, front, back, example, translation, unit) => {
+  const updateCard = async (id, front, back, example, translation, unit, level) => {
     const updated = cards.map(c =>
       c.id === id
         ? {
@@ -250,6 +282,7 @@ export default function FlashcardApp() {
             example: example.trim(),
             translation: translation.trim(),
             unit: (unit || '').trim() || 'General',
+            level: (level || '').trim() || 'Beginner', // ADD THIS
           }
         : c
     );
@@ -265,6 +298,7 @@ export default function FlashcardApp() {
         example: example.trim(),
         translation: translation.trim(),
         unit: (unit || '').trim() || 'General',
+        level: (level || '').trim() || 'Beginner', // ADD THIS
       });
     } catch (error) {
       console.error('Error updating card in database:', error);
@@ -410,7 +444,8 @@ export default function FlashcardApp() {
             back: card.back || '',
             translation: card.translation || '',
             example: card.example || '',
-            unit: importUnit || 'General', // FIXED: Use importUnit state
+            unit: importUnit || 'General',
+            level: importLevel || 'Beginner', // ADD THIS
           });
         });
       } else if (importFormat === 'csv') {
@@ -450,7 +485,8 @@ export default function FlashcardApp() {
               back: fields[1] || '',
               translation: fields[2] || '',
               example: fields[3] || '',
-              unit: importUnit || 'General', // FIXED: Use importUnit state
+              unit: importUnit || 'General',
+              level: importLevel || 'Beginner', // ADD THIS
             });
           }
         });
@@ -469,7 +505,8 @@ export default function FlashcardApp() {
               back: fields[1]?.trim() || '',
               translation: fields[2]?.trim() || '',
               example: fields[3]?.trim() || '',
-              unit: importUnit || 'General', // FIXED: Use importUnit state
+              unit: importUnit || 'General',
+              level: importLevel || 'Beginner', // ADD THIS
             });
           }
         });
@@ -503,7 +540,7 @@ export default function FlashcardApp() {
         setCards(updated);
         buildStudyQueue(updated);
         setImportText('');
-        setImportUnit('General'); // FIXED: Reset import unit
+        setImportLevel('Beginner'); // Reset import level
         setShowImport(false);
         alert(`Successfully imported ${dbBackedCards.length} cards (saved to database)!`);
       } catch (error) {
@@ -1068,13 +1105,31 @@ export default function FlashcardApp() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2 mono">Unit/Category</label>
-                <Input
+                <select
                   value={newCard.unit}
                   onChange={(e) => setNewCard({ ...newCard, unit: e.target.value })}
-                  placeholder="e.g., Unit 1, Chapter 5, Basics..."
-                  className="text-lg"
-                />
-                <p className="text-xs text-slate-500 mt-1">Group cards by unit for targeted testing</p>
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  {UNIT_OPTIONS.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">Select unit/chapter for this card</p>
+              </div>
+              
+              {/* ADD THIS NEW FIELD */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2 mono">Level</label>
+                <select
+                  value={newCard.level}
+                  onChange={(e) => setNewCard({ ...newCard, level: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  {LEVEL_OPTIONS.map(level => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">Select difficulty level</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2 mono">Back (Answer)</label>
@@ -1628,7 +1683,77 @@ export default function FlashcardApp() {
                 </Button>
               </div>
             </div>
+            {/* Filter Panel - NEW */}
+            <div className="bg-white rounded-xl p-4 mb-4 border border-slate-200 shadow-sm">
+              <h3 className="text-sm font-medium text-slate-700 mb-3 mono">
+                🔍 Filter Cards
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Unit Filter */}
+                <div>
+                  <label className="block text-xs text-slate-600 mb-1 mono">Unit</label>
+                  <select
+                    value={filterUnit}
+                    onChange={(e) => setFilterUnit(e.target.value)}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">All Units</option>
+                    {UNIT_OPTIONS.map(unit => (
+                      <option key={unit} value={unit}>{unit}</option>
+                    ))}
+                  </select>
+                </div>
             
+                {/* Level Filter */}
+                <div>
+                  <label className="block text-xs text-slate-600 mb-1 mono">Level</label>
+                  <select
+                    value={filterLevel}
+                    onChange={(e) => setFilterLevel(e.target.value)}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">All Levels</option>
+                    {LEVEL_OPTIONS.map(level => (
+                      <option key={level} value={level}>{level}</option>
+                    ))}
+                  </select>
+                </div>
+            
+                {/* Clear Button */}
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFilterUnit('');
+                      setFilterLevel('');
+                    }}
+                    className="w-full"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Active Filters Display */}
+              {(filterUnit || filterLevel) && (
+                <div className="mt-3 text-sm">
+                  <span className="text-slate-600">Showing:</span>
+                  {filterUnit && (
+                    <span className="ml-2 px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+                      📚 {filterUnit}
+                    </span>
+                  )}
+                  {filterLevel && (
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                      🎯 {filterLevel}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             {cards.length === 0 ? (
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-slate-200/50">
                 <p className="text-slate-600 mb-4">No cards yet. Create your first card to start learning!</p>
@@ -1639,8 +1764,10 @@ export default function FlashcardApp() {
               </div>
             ) : (
               <div className="space-y-3">
-                {cards.map((card) => (
-                  <div
+                {cards
+                  .filter(card => !filterUnit || card.unit === filterUnit)
+                  .filter(card => !filterLevel || card.level === filterLevel)
+                  .map((card) => (                  <div
                     key={card.id}
                     className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover-lift"
                   >
@@ -1670,10 +1797,29 @@ export default function FlashcardApp() {
                         </div>
                         <div>
                           <label className="text-xs text-slate-500 mono mb-1 block">Unit/Category</label>
-                          <Input
+                          <select
                             defaultValue={card.unit || 'General'}
                             id={`unit-${card.id}`}
-                          />
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                          >
+                            {UNIT_OPTIONS.map(unit => (
+                              <option key={unit} value={unit}>{unit}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        {/* ADD THIS NEW FIELD */}
+                        <div>
+                          <label className="text-xs text-slate-500 mono mb-1 block">Level</label>
+                          <select
+                            defaultValue={card.level || 'Beginner'}
+                            id={`level-${card.id}`}
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                          >
+                            {LEVEL_OPTIONS.map(level => (
+                              <option key={level} value={level}>{level}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="text-xs text-slate-500 mono mb-1 block">Example</label>
@@ -1692,7 +1838,8 @@ export default function FlashcardApp() {
                               const example = document.getElementById(`example-${card.id}`).value;
                               const translation = document.getElementById(`translation-${card.id}`).value;
                               const unit = document.getElementById(`unit-${card.id}`).value;
-                              updateCard(card.id, front, back, example, translation, unit);
+                              const level = document.getElementById(`level-${card.id}`).value; // ADD THIS
+                              updateCard(card.id, front, back, example, translation, unit, level); // ADD level param
                             }}
                             className="flex-1"
                           >
@@ -1722,9 +1869,15 @@ export default function FlashcardApp() {
                               "{card.example}"
                             </div>
                           )}
-                          <div className="flex gap-3 mt-2 text-xs text-slate-500 mono">
-                            <span className="bg-slate-100 px-2 py-1 rounded">Box {card.box}</span>
-                            <span className="bg-slate-100 px-2 py-1 rounded">{card.reviews} reviews</span>
+                          <div className="flex gap-2 mt-2 text-xs mono flex-wrap">
+                            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded">Box {card.box}</span>
+                            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded">{card.reviews} reviews</span>
+                            <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded">
+                              📚 {card.unit || 'General'}
+                            </span>
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                              🎯 {card.level || 'Beginner'}
+                            </span>
                           </div>
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
@@ -1901,7 +2054,38 @@ export default function FlashcardApp() {
                     )}
                   </div>
                 </div>
-                
+                {/* Unit and Level Selection for Import - NEW */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2 mono">
+                      Unit for All Cards
+                    </label>
+                    <select
+                      value={importUnit}
+                      onChange={(e) => setImportUnit(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2"
+                    >
+                      {UNIT_OPTIONS.map(unit => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2 mono">
+                      Level for All Cards
+                    </label>
+                    <select
+                      value={importLevel}
+                      onChange={(e) => setImportLevel(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2"
+                    >
+                      {LEVEL_OPTIONS.map(level => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2 mono">
                     Paste Your Data
@@ -1912,21 +2096,6 @@ export default function FlashcardApp() {
                     placeholder={`Paste your ${importFormat.toUpperCase()} data here...`}
                     className="min-h-[200px] font-mono text-sm"
                   />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2 mono">
-                    Unit for all imported cards
-                  </label>
-                  <Input
-                    value={importUnit}
-                    onChange={(e) => setImportUnit(e.target.value)}
-                    placeholder="e.g., Unit 1, Chapter 3 (default: General)"
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    This unit will be applied to every imported card.
-                  </p>
                 </div>
                 
                 <div className="flex gap-3">
