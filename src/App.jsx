@@ -117,6 +117,7 @@ export default function FlashcardApp() {
             example: card.example || '',
             translation: card.translation || '',
             unit: card.unit || 'General',
+            level: card.level || 'Beginner',
             box: 1,
             reviews: 0,
             lastReview: null,
