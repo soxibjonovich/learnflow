@@ -932,4 +932,3 @@ export default function FlashcardApp() {
             <TrendingUp className="w-4 h-4 mr-2" />Manage
           </Button>
         </div>
-934 /mnt/user-data/outputs/App.jsx
