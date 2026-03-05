@@ -1,25 +1,46 @@
-import { useMemo, useState } from "react";
-import { FileText, TrendingUp } from "lucide-react";
-import { useCards, useStudyQueue, useTest } from "./hooks";
-import { Header, ModeSelector, StatsBar } from "./components/layout";
-import { StudyMode } from "./components/study";
-import { CreateMode } from "./components/create";
-import { TestMode } from "./components/test";
+import { useMemo, useState } from 'react';
+import { useCards, useParaphrases, useStudyQueue, useTest } from './hooks';
+import { Header, ModeSelector, StatsBar } from './components/layout';
+import { StudyMode } from './components/study';
+import { CreateMode } from './components/create';
+import { TestMode } from './components/test';
+import { ParaphrasesMode } from './components/paraphrases';
+import { ManageMode } from './components/manage';
 
 const DEFAULT_NEW_CARD = {
-  front: "",
-  back: "",
-  example: "",
-  translation: "",
-  unit: "General",
-  level: "Beginner",
+  front: '',
+  back: '',
+  example: '',
+  translation: '',
+  unit: 'General',
+  level: 'Beginner',
 };
 
 export default function App() {
-  const [mode, setMode] = useState("study");
+  const [mode, setMode] = useState('study');
   const [newCard, setNewCard] = useState(DEFAULT_NEW_CARD);
 
-  const { cards, isLoading, error, addCard, rateCard, getStats } = useCards();
+  const {
+    cards,
+    isLoading,
+    error,
+    addCard,
+    updateCard,
+    deleteCard,
+    bulkAddCards,
+    rateCard,
+    resetProgress,
+    getStats,
+  } = useCards();
+
+  const {
+    paraphrases,
+    isLoading: isLoadingParaphrases,
+    error: paraphraseError,
+    addParaphrase,
+    updateParaphrase,
+    deleteParaphrase,
+  } = useParaphrases();
 
   const {
     studyQueue,
@@ -38,6 +59,8 @@ export default function App() {
     testAnswers,
     testComplete,
     testType,
+    testCategory,
+    testLimit,
     multipleChoiceOptions,
     selectedUnits,
     testWholeUnit,
@@ -46,12 +69,13 @@ export default function App() {
     answerQuestion,
     resetTest,
     toggleUnit,
-  } = useTest(cards);
+    setTestLimit,
+  } = useTest(cards, paraphrases);
 
   const stats = useMemo(() => getStats(), [getStats]);
 
   const handleModeChange = (nextMode) => {
-    if (nextMode === "test") {
+    if (nextMode === 'test') {
       resetTest();
     }
     setMode(nextMode);
@@ -60,7 +84,7 @@ export default function App() {
   const handleAddCard = async (cardData) => {
     await addCard(cardData);
     setNewCard(DEFAULT_NEW_CARD);
-    setMode("study");
+    setMode('study');
   };
 
   const handleRateCard = (isCorrect) => {
@@ -79,11 +103,11 @@ export default function App() {
         <StatsBar
           stats={stats}
           progress={stats.progress}
-          isLoadingFromDb={isLoading}
-          dbError={error}
+          isLoadingFromDb={isLoading || isLoadingParaphrases}
+          dbError={error || paraphraseError}
         />
 
-        {mode === "study" && (
+        {mode === 'study' && (
           <StudyMode
             studyQueue={studyQueue}
             currentCardIndex={currentCardIndex}
@@ -96,22 +120,21 @@ export default function App() {
           />
         )}
 
-        {mode === "create" && (
-          <CreateMode
-            newCard={newCard}
-            onCardChange={setNewCard}
-            onAddCard={handleAddCard}
-          />
+        {mode === 'create' && (
+          <CreateMode newCard={newCard} onCardChange={setNewCard} onAddCard={handleAddCard} />
         )}
 
-        {mode === "test" && (
+        {mode === 'test' && (
           <TestMode
             cards={cards}
+            paraphrases={paraphrases}
             testCards={testCards}
             currentTestIndex={currentTestIndex}
             testAnswers={testAnswers}
             testComplete={testComplete}
             testType={testType}
+            testCategory={testCategory}
+            testLimit={testLimit}
             multipleChoiceOptions={multipleChoiceOptions}
             selectedUnits={selectedUnits}
             testWholeUnit={testWholeUnit}
@@ -121,31 +144,30 @@ export default function App() {
             onAnswerQuestion={answerQuestion}
             onResetTest={resetTest}
             onModeChange={handleModeChange}
+            onTestLimitChange={setTestLimit}
           />
         )}
 
-        {mode === "paraphrases" && (
-          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-lg slide-in">
-            <div className="flex items-center gap-3 mb-4">
-              <FileText className="w-6 h-6 text-indigo-600" />
-              <h2 className="text-2xl font-bold text-slate-900">Paraphrases</h2>
-            </div>
-            <p className="text-slate-600">
-              This mode will be moved from `App_old.jsx` in the next split step.
-            </p>
-          </div>
+        {mode === 'paraphrases' && (
+          <ParaphrasesMode
+            paraphrases={paraphrases}
+            isLoading={isLoadingParaphrases}
+            error={paraphraseError}
+            onAddParaphrase={addParaphrase}
+            onUpdateParaphrase={updateParaphrase}
+            onDeleteParaphrase={deleteParaphrase}
+          />
         )}
 
-        {mode === "manage" && (
-          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-lg slide-in">
-            <div className="flex items-center gap-3 mb-4">
-              <TrendingUp className="w-6 h-6 text-indigo-600" />
-              <h2 className="text-2xl font-bold text-slate-900">Manage</h2>
-            </div>
-            <p className="text-slate-600">
-              This mode will be moved from `App_old.jsx` in the next split step.
-            </p>
-          </div>
+        {mode === 'manage' && (
+          <ManageMode
+            cards={cards}
+            onUpdateCard={updateCard}
+            onDeleteCard={deleteCard}
+            onResetProgress={resetProgress}
+            onBulkAddCards={bulkAddCards}
+            onSwitchToCreate={() => handleModeChange('create')}
+          />
         )}
       </div>
     </div>

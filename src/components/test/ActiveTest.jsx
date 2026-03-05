@@ -7,6 +7,7 @@ export default function ActiveTest({
   testCards,
   currentIndex,
   testType,
+  testCategory,
   multipleChoiceOptions,
   onAnswer,
   unitName,
@@ -26,6 +27,8 @@ export default function ActiveTest({
     setWrittenAnswer('');
   };
 
+  const categoryLabel = testCategory === 'paraphrases' ? 'Paraphrase Test' : 'Flashcard Test';
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
@@ -35,7 +38,7 @@ export default function ActiveTest({
           </div>
           <div className="text-sm font-medium text-indigo-600 mono">
             {unitName ? `${unitName} • ` : ''}
-            {testType === 'written' ? 'Written Test' : 'Multiple Choice'}
+            {categoryLabel} • {testType === 'written' ? 'Written' : 'Multiple Choice'}
           </div>
         </div>
 
@@ -44,7 +47,7 @@ export default function ActiveTest({
         <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-8 mb-6">
           <div className="text-sm text-slate-500 uppercase tracking-wider mb-3 mono">Question</div>
           <div className="text-2xl font-bold text-slate-900 mb-4">{currentCard.front}</div>
-          {currentCard.translation && (
+          {testCategory === 'cards' && currentCard.translation && (
             <div className="text-lg text-indigo-600 font-medium mono">{currentCard.translation}</div>
           )}
         </div>
@@ -90,6 +93,7 @@ ActiveTest.defaultProps = {
   testCards: [],
   currentIndex: 0,
   testType: 'written',
+  testCategory: 'cards',
   multipleChoiceOptions: [],
   onAnswer: () => {},
   unitName: '',

@@ -1,19 +1,18 @@
-import React, { useMemo } from "react";
-import { Award, Check, RotateCcw, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useMemo } from 'react';
+import { Award, Check, RotateCcw, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function TestResults({
   testCards,
   testAnswers,
+  testCategory,
   onRetakeTest,
   onBackToStudy,
   onBackToSelection,
   unitName,
 }) {
   const score = useMemo(() => {
-    const correct = Object.values(testAnswers).filter(
-      (answer) => answer.isCorrect,
-    ).length;
+    const correct = Object.values(testAnswers).filter((answer) => answer.isCorrect).length;
     const total = testCards.length;
     const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
     return { correct, total, percentage };
@@ -23,15 +22,12 @@ export default function TestResults({
     <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-lg slide-in">
       <div className="text-center mb-8">
         <Award className="w-20 h-20 text-yellow-500 mx-auto mb-4" />
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">
-          Test Complete!
-        </h2>
-        <div className="text-6xl font-bold text-indigo-600 mb-2">
-          {score.percentage}%
-        </div>
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">Test Complete!</h2>
+        <div className="text-6xl font-bold text-indigo-600 mb-2">{score.percentage}%</div>
         <div className="text-xl text-slate-600 mono">
           {score.correct} / {score.total} correct
-          {unitName ? ` • ${unitName}` : ""}
+          {unitName ? ` • ${unitName}` : ''}
+          {` • ${testCategory === 'paraphrases' ? 'Paraphrase' : 'Flashcard'} Test`}
         </div>
       </div>
 
@@ -44,9 +40,7 @@ export default function TestResults({
             <div
               key={card.id}
               className={`p-4 rounded-lg border-2 ${
-                isCorrect
-                  ? "border-green-300 bg-green-50"
-                  : "border-red-300 bg-red-50"
+                isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -57,23 +51,19 @@ export default function TestResults({
                 )}
 
                 <div className="flex-1">
-                  <div className="font-semibold text-slate-900 mb-1">
-                    {index + 1}. {card.front}
-                  </div>
+                  <div className="font-semibold text-slate-900 mb-1">{index + 1}. {card.front}</div>
 
                   {isCorrect ? (
                     <div className="text-sm text-green-700 mono">
-                      Correct: {answer?.correct}
+                      Correct: {testCategory === 'paraphrases' ? answer?.given : answer?.correct}
                     </div>
                   ) : (
                     <>
                       <div className="text-sm text-red-700">
-                        <span className="mono">Your answer:</span>{" "}
-                        {answer?.given || "(empty)"}
+                        <span className="mono">Your answer:</span> {answer?.given || '(empty)'}
                       </div>
                       <div className="text-sm text-green-700">
-                        <span className="mono">Correct answer:</span>{" "}
-                        {answer?.correct}
+                        <span className="mono">Correct answer:</span> {answer?.correct}
                       </div>
                     </>
                   )}
@@ -89,18 +79,10 @@ export default function TestResults({
           <RotateCcw className="w-5 h-5 mr-2" />
           Take Another Test
         </Button>
-        <Button
-          onClick={onBackToSelection}
-          variant="outline"
-          className="flex-1 h-12"
-        >
+        <Button onClick={onBackToSelection} variant="outline" className="flex-1 h-12">
           New Selection
         </Button>
-        <Button
-          onClick={onBackToStudy}
-          variant="outline"
-          className="flex-1 h-12"
-        >
+        <Button onClick={onBackToStudy} variant="outline" className="flex-1 h-12">
           Back to Study
         </Button>
       </div>
@@ -111,8 +93,9 @@ export default function TestResults({
 TestResults.defaultProps = {
   testCards: [],
   testAnswers: {},
+  testCategory: 'cards',
   onRetakeTest: () => {},
   onBackToStudy: () => {},
   onBackToSelection: () => {},
-  unitName: "",
+  unitName: '',
 };

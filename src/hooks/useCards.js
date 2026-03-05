@@ -150,7 +150,25 @@ export function useCards() {
       return newCards;
     } catch (err) {
       console.error("Error bulk adding cards:", err);
-      throw err;
+      const now = Date.now();
+      const localCards = cardsData.map((card, index) => ({
+        id: now + index,
+        front: card.front,
+        back: card.back,
+        translation: card.translation || "",
+        example: card.example || "",
+        unit: card.unit || "General",
+        level: card.level || "Beginner",
+        box: 1,
+        reviews: 0,
+        lastReview: null,
+        nextReview: null,
+        created: now + index,
+      }));
+
+      setCards((prev) => [...prev, ...localCards]);
+      setError("Database unavailable. Imported cards were saved locally.");
+      return localCards;
     }
   }, []);
 
