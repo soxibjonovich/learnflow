@@ -4,7 +4,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    // base: '/learnflow/',
+    base: '/learnflow/',
     plugins: [react()],
     resolve: {
         alias: {
