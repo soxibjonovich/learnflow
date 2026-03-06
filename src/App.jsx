@@ -1,23 +1,30 @@
-import { useMemo, useState } from 'react';
-import { useCards, useParaphrases, useStudyQueue, useTest } from './hooks';
-import { Header, ModeSelector, StatsBar } from './components/layout';
-import { StudyMode } from './components/study';
-import { CreateMode } from './components/create';
-import { TestMode } from './components/test';
-import { ParaphrasesMode } from './components/paraphrases';
-import { ManageMode } from './components/manage';
+import { useMemo, useState } from "react";
+import { CreateMode } from "./components/create";
+import { Header, ModeSelector, StatsBar } from "./components/layout";
+import { ManageMode } from "./components/manage";
+import { ParaphrasesMode } from "./components/paraphrases";
+import { PassageBuilderMode, ReadingPracticeMode } from "./components/reading";
+import { StudyMode } from "./components/study";
+import { TestMode } from "./components/test";
+import {
+    useCards,
+    useParaphrases,
+    useReadingPassages,
+    useStudyQueue,
+    useTest,
+} from "./hooks";
 
 const DEFAULT_NEW_CARD = {
-  front: '',
-  back: '',
-  example: '',
-  translation: '',
-  unit: 'General',
-  level: 'Beginner',
+  front: "",
+  back: "",
+  example: "",
+  translation: "",
+  unit: "General",
+  level: "Beginner",
 };
 
 export default function App() {
-  const [mode, setMode] = useState('study');
+  const [mode, setMode] = useState("study");
   const [newCard, setNewCard] = useState(DEFAULT_NEW_CARD);
 
   const {
@@ -41,6 +48,8 @@ export default function App() {
     updateParaphrase,
     deleteParaphrase,
   } = useParaphrases();
+
+  const { passages, addPassage, deletePassage } = useReadingPassages();
 
   const {
     studyQueue,
@@ -75,7 +84,7 @@ export default function App() {
   const stats = useMemo(() => getStats(), [getStats]);
 
   const handleModeChange = (nextMode) => {
-    if (nextMode === 'test') {
+    if (nextMode === "test") {
       resetTest();
     }
     setMode(nextMode);
@@ -84,7 +93,7 @@ export default function App() {
   const handleAddCard = async (cardData) => {
     await addCard(cardData);
     setNewCard(DEFAULT_NEW_CARD);
-    setMode('study');
+    setMode("study");
   };
 
   const handleRateCard = (isCorrect) => {
@@ -107,7 +116,7 @@ export default function App() {
           dbError={error || paraphraseError}
         />
 
-        {mode === 'study' && (
+        {mode === "study" && (
           <StudyMode
             studyQueue={studyQueue}
             currentCardIndex={currentCardIndex}
@@ -120,11 +129,15 @@ export default function App() {
           />
         )}
 
-        {mode === 'create' && (
-          <CreateMode newCard={newCard} onCardChange={setNewCard} onAddCard={handleAddCard} />
+        {mode === "create" && (
+          <CreateMode
+            newCard={newCard}
+            onCardChange={setNewCard}
+            onAddCard={handleAddCard}
+          />
         )}
 
-        {mode === 'test' && (
+        {mode === "test" && (
           <TestMode
             cards={cards}
             paraphrases={paraphrases}
@@ -148,7 +161,7 @@ export default function App() {
           />
         )}
 
-        {mode === 'paraphrases' && (
+        {mode === "paraphrases" && (
           <ParaphrasesMode
             paraphrases={paraphrases}
             isLoading={isLoadingParaphrases}
@@ -159,14 +172,24 @@ export default function App() {
           />
         )}
 
-        {mode === 'manage' && (
+        {mode === "manage" && (
           <ManageMode
             cards={cards}
             onUpdateCard={updateCard}
             onDeleteCard={deleteCard}
             onResetProgress={resetProgress}
             onBulkAddCards={bulkAddCards}
-            onSwitchToCreate={() => handleModeChange('create')}
+            onSwitchToCreate={() => handleModeChange("create")}
+          />
+        )}
+
+        {mode === "reading" && <ReadingPracticeMode passages={passages} />}
+
+        {mode === "passage-builder" && (
+          <PassageBuilderMode
+            passages={passages}
+            onAddPassage={addPassage}
+            onDeletePassage={deletePassage}
           />
         )}
       </div>

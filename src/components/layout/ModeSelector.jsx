@@ -6,6 +6,8 @@ import {
   ClipboardCheck,
   FileText,
   TrendingUp,
+  BookOpen,
+  ScrollText,
 } from "lucide-react";
 
 /**
@@ -41,6 +43,18 @@ export default function ModeSelector({ currentMode, onModeChange }) {
       label: "Paraphrases",
       icon: FileText,
       description: "Practice paraphrasing",
+    },
+    {
+      id: "reading",
+      label: "Reading",
+      icon: BookOpen,
+      description: "Practice IELTS reading passages",
+    },
+    {
+      id: "passage-builder",
+      label: "Passages",
+      icon: ScrollText,
+      description: "Create reading passages and question sets",
     },
     {
       id: "manage",
