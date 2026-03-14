@@ -1,13 +1,13 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Calendar, Plus } from 'lucide-react';
-import FlashCard from './FlashCard';
-import StudyControls from './StudyControls';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Plus } from "lucide-react";
+import FlashCard from "./FlashCard";
+import StudyControls from "./StudyControls";
 
 /**
  * StudyMode Component
  * Main container for study mode with flashcards
- * 
+ *
  * @param {Object} props
  * @param {Array} props.studyQueue
  * @param {number} props.currentCardIndex
@@ -22,11 +22,13 @@ export default function StudyMode({
   studyQueue,
   currentCardIndex,
   isFlipped,
+  isReverseMode,
   showHint,
   onFlip,
   onRate,
   onReshuffle,
-  onModeChange
+  onToggleReverseMode,
+  onModeChange,
 }) {
   // Current card
   const currentCard = studyQueue[currentCardIndex];
@@ -43,10 +45,7 @@ export default function StudyMode({
           <p className="text-slate-600 mb-6">
             No cards due for review right now. Great work!
           </p>
-          <Button 
-            onClick={() => onModeChange('create')} 
-            className="hover-lift"
-          >
+          <Button onClick={() => onModeChange("create")} className="hover-lift">
             <Plus className="w-4 h-4 mr-2" />
             Create New Cards
           </Button>
@@ -60,20 +59,25 @@ export default function StudyMode({
     <div className="slide-in">
       <StudyControls
         isFlipped={isFlipped}
+        isReverseMode={isReverseMode}
         onRate={onRate}
         onReshuffle={onReshuffle}
+        onToggleReverseMode={onToggleReverseMode}
         currentIndex={currentCardIndex + 1}
         totalCards={studyQueue.length}
         box={currentCard?.box || 1}
         reviews={currentCard?.reviews || 0}
       />
 
-      <FlashCard
-        card={currentCard}
-        isFlipped={isFlipped}
-        onFlip={onFlip}
-        showHint={showHint}
-      />
+      <div key={currentCard?.id}>
+        <FlashCard
+          card={currentCard}
+          isFlipped={isFlipped}
+          isReverseMode={isReverseMode}
+          onFlip={onFlip}
+          showHint={showHint}
+        />
+      </div>
     </div>
   );
 }
@@ -83,9 +87,11 @@ StudyMode.defaultProps = {
   studyQueue: [],
   currentCardIndex: 0,
   isFlipped: false,
+  isReverseMode: false,
   showHint: true,
   onFlip: () => {},
   onRate: () => {},
   onReshuffle: () => {},
-  onModeChange: () => {}
+  onToggleReverseMode: () => {},
+  onModeChange: () => {},
 };

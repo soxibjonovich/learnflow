@@ -19,6 +19,7 @@ const DEFAULT_NEW_CARD = {
 export default function App() {
   const [mode, setMode] = useState("study");
   const [newCard, setNewCard] = useState(DEFAULT_NEW_CARD);
+  const [isReverseMode, setIsReverseMode] = useState(false);
 
   const {
     cards,
@@ -112,10 +113,12 @@ export default function App() {
             studyQueue={studyQueue}
             currentCardIndex={currentCardIndex}
             isFlipped={isFlipped}
+            isReverseMode={isReverseMode}
             showHint={showHint}
             onFlip={() => setIsFlipped((prev) => !prev)}
             onRate={handleRateCard}
             onReshuffle={reshuffle}
+            onToggleReverseMode={() => setIsReverseMode((prev) => !prev)}
             onModeChange={handleModeChange}
           />
         )}

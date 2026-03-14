@@ -1,44 +1,78 @@
-import React from 'react';
+import React from "react";
 
-export default function FlashCard({ card, isFlipped, onFlip, showHint }) {
+export default function FlashCard({
+  card,
+  isFlipped,
+  isReverseMode,
+  onFlip,
+  showHint,
+}) {
   if (!card) return null;
 
+  const questionText = isReverseMode ? card.back : card.front;
+  const answerText = isReverseMode ? card.front : card.back;
+
   return (
-    <button
-      type="button"
-      className={`w-full rounded-3xl p-10 min-h-[300px] border-2 text-left transition-all shadow-xl ${
-        isFlipped
-          ? 'bg-gradient-to-br from-indigo-600 to-blue-600 border-indigo-700 text-white'
-          : 'bg-white border-slate-200 text-slate-900'
-      }`}
-      onClick={onFlip}
-    >
-      <div className="text-sm uppercase tracking-wider mb-4 mono opacity-80">
-        {isFlipped ? 'Answer' : 'Question'}
-      </div>
+    <div className="study-card-shell study-card-enter">
+      <button
+        type="button"
+        className={`study-card ${isFlipped ? "is-answer" : "is-question"}`}
+        onClick={onFlip}
+      >
+        <span
+          className={`text-sm uppercase tracking-wider mb-4 mono ${
+            isFlipped ? "text-cyan-100" : "text-slate-400"
+          }`}
+        >
+          {isFlipped ? "Answer" : "Question"}
+        </span>
 
-      <div className="text-3xl font-semibold leading-relaxed mb-4">
-        {isFlipped ? card.back : card.front}
-      </div>
+        <span
+          className={`text-3xl font-semibold leading-relaxed mb-4 ${
+            isFlipped ? "text-white" : "text-slate-900"
+          }`}
+        >
+          {isFlipped ? answerText : questionText}
+        </span>
 
-      {!isFlipped && card.translation && (
-        <div className="text-lg text-indigo-600 font-medium mb-3 mono">{card.translation}</div>
-      )}
+        {!isFlipped && !isReverseMode && card.translation && (
+          <span className="text-lg text-cyan-700 font-medium mb-3 mono">
+            {card.translation}
+          </span>
+        )}
 
-      {isFlipped && card.example && (
-        <div className="text-base italic border-t border-white/30 pt-4 mt-4">"{card.example}"</div>
-      )}
+        {!isFlipped && isReverseMode && (
+          <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-700 mono">
+            Reverse Mode
+          </span>
+        )}
 
-      {!isFlipped && showHint && (
-        <div className="mt-6 text-sm text-slate-400 mono">Tap to reveal answer</div>
-      )}
-    </button>
+        {isFlipped && isReverseMode && card.translation && (
+          <span className="text-base text-cyan-100 mb-3 mono">
+            Translation: {card.translation}
+          </span>
+        )}
+
+        {isFlipped && card.example && (
+          <span className="text-base italic border-t border-white/20 pt-4 mt-4 text-slate-100">
+            "{card.example}"
+          </span>
+        )}
+
+        {!isFlipped && showHint && (
+          <span className="mt-6 text-sm text-slate-400 mono">
+            Tap to reveal answer
+          </span>
+        )}
+      </button>
+    </div>
   );
 }
 
 FlashCard.defaultProps = {
   card: null,
   isFlipped: false,
+  isReverseMode: false,
   onFlip: () => {},
   showHint: true,
 };
