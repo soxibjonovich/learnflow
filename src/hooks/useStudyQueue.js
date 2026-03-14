@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 /**
  * useStudyQueue Hook
@@ -9,25 +9,26 @@ export function useStudyQueue(cards) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(true);
+  const cardListSignature = cards.map((card) => card.id).join("|");
 
-  // Build study queue when cards change
+  // Rebuild only when the card list itself changes, not when review state updates.
   useEffect(() => {
     buildQueue();
-  }, [cards]);
+  }, [cardListSignature]);
 
   const buildQueue = useCallback(() => {
     const now = Date.now();
     const due = cards
-      .filter(card => !card.nextReview || card.nextReview <= now)
+      .filter((card) => !card.nextReview || card.nextReview <= now)
       .sort((a, b) => a.box - b.box);
-    
+
     // Shuffle
     const shuffled = [...due];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    
+
     setStudyQueue(shuffled);
     if (shuffled.length > 0) setCurrentCardIndex(0);
   }, [cards]);
@@ -45,11 +46,12 @@ export function useStudyQueue(cards) {
 
   const nextCard = useCallback(() => {
     const newQueue = studyQueue.filter((_, i) => i !== currentCardIndex);
-    const nextIndex = newQueue.length > 0 ? Math.min(currentCardIndex, newQueue.length - 1) : 0;
-    
+    const nextIndex =
+      newQueue.length > 0 ? Math.min(currentCardIndex, newQueue.length - 1) : 0;
+
     setIsFlipped(false);
     setShowHint(false);
-    
+
     setTimeout(() => {
       setStudyQueue(newQueue);
       setCurrentCardIndex(nextIndex);
@@ -68,6 +70,6 @@ export function useStudyQueue(cards) {
     setIsFlipped,
     reshuffle,
     nextCard,
-    rebuildQueue: buildQueue
+    rebuildQueue: buildQueue,
   };
 }

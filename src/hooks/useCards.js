@@ -31,17 +31,22 @@ export function useCards() {
   const loadCards = async () => {
     setIsLoading(true);
     try {
+      let localCards = [];
+
       // Load from localStorage first
       const stored = localStorage.getItem("flashcards");
       if (stored) {
-        const parsed = JSON.parse(stored);
-        setCards(parsed);
+        localCards = JSON.parse(stored);
+        setCards(localCards);
       }
 
       // Then load from database
       const sharedCards = await fetchSharedCards();
       if (sharedCards && sharedCards.length > 0) {
         const now = Date.now();
+        const localCardsById = new Map(
+          localCards.map((card) => [card.id, card]),
+        );
         const dbCards = sharedCards.map((card, index) => ({
           id: card.id ?? now + index,
           front: card.front || "",
@@ -56,8 +61,27 @@ export function useCards() {
           nextReview: null,
           created: now + index,
         }));
+        const mergedCards = dbCards.map((dbCard) => {
+          const localCard = localCardsById.get(dbCard.id);
 
-        setCards(dbCards);
+          if (!localCard) {
+            return dbCard;
+          }
+
+          return {
+            ...dbCard,
+            box: localCard.box ?? dbCard.box,
+            reviews: localCard.reviews ?? dbCard.reviews,
+            lastReview: localCard.lastReview ?? dbCard.lastReview,
+            nextReview: localCard.nextReview ?? dbCard.nextReview,
+            created: localCard.created ?? dbCard.created,
+          };
+        });
+
+        const dbIds = new Set(mergedCards.map((card) => card.id));
+        const localOnlyCards = localCards.filter((card) => !dbIds.has(card.id));
+
+        setCards([...mergedCards, ...localOnlyCards]);
       }
     } catch (err) {
       setError(err.message);
