@@ -5,6 +5,5 @@
 
 export { useCards } from "./useCards";
 export { useParaphrases } from "./useParaphrases";
-export { useReadingPassages } from "./useReadingPassages";
 export { useStudyQueue } from "./useStudyQueue";
 export { useTest } from "./useTests";

@@ -3,16 +3,9 @@ import { CreateMode } from "./components/create";
 import { Header, ModeSelector, StatsBar } from "./components/layout";
 import { ManageMode } from "./components/manage";
 import { ParaphrasesMode } from "./components/paraphrases";
-import { PassageBuilderMode, ReadingPracticeMode } from "./components/reading";
 import { StudyMode } from "./components/study";
 import { TestMode } from "./components/test";
-import {
-    useCards,
-    useParaphrases,
-    useReadingPassages,
-    useStudyQueue,
-    useTest,
-} from "./hooks";
+import { useCards, useParaphrases, useStudyQueue, useTest } from "./hooks";
 
 const DEFAULT_NEW_CARD = {
   front: "",
@@ -48,8 +41,6 @@ export default function App() {
     updateParaphrase,
     deleteParaphrase,
   } = useParaphrases();
-
-  const { passages, addPassage, deletePassage } = useReadingPassages();
 
   const {
     studyQueue,
@@ -180,16 +171,6 @@ export default function App() {
             onResetProgress={resetProgress}
             onBulkAddCards={bulkAddCards}
             onSwitchToCreate={() => handleModeChange("create")}
-          />
-        )}
-
-        {mode === "reading" && <ReadingPracticeMode passages={passages} />}
-
-        {mode === "passage-builder" && (
-          <PassageBuilderMode
-            passages={passages}
-            onAddPassage={addPassage}
-            onDeletePassage={deletePassage}
           />
         )}
       </div>
