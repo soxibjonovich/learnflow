@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Plus } from "lucide-react";
 import FlashCard from "./FlashCard";
 import StudyControls from "./StudyControls";
+import { formatRelativeReview } from "@/lib/repetition";
 
 /**
  * StudyMode Component
@@ -27,6 +28,8 @@ export default function StudyMode({
   onFlip,
   onRate,
   onReshuffle,
+  onNextCard,
+  onPreviousCard,
   onToggleReverseMode,
   onModeChange,
 }) {
@@ -62,11 +65,15 @@ export default function StudyMode({
         isReverseMode={isReverseMode}
         onRate={onRate}
         onReshuffle={onReshuffle}
+        onNextCard={onNextCard}
+        onPreviousCard={onPreviousCard}
         onToggleReverseMode={onToggleReverseMode}
         currentIndex={currentCardIndex + 1}
         totalCards={studyQueue.length}
         box={currentCard?.box || 1}
-        reviews={currentCard?.reviews || 0}
+        reviews={currentCard?.repetitions || 0}
+        status={currentCard?.status || "new"}
+        nextReviewLabel={formatRelativeReview(currentCard?.nextReview)}
       />
 
       <div key={currentCard?.id}>
@@ -76,6 +83,8 @@ export default function StudyMode({
           isReverseMode={isReverseMode}
           onFlip={onFlip}
           showHint={showHint}
+          onSwipeNext={onNextCard}
+          onSwipePrevious={onPreviousCard}
         />
       </div>
     </div>
@@ -92,6 +101,8 @@ StudyMode.defaultProps = {
   onFlip: () => {},
   onRate: () => {},
   onReshuffle: () => {},
+  onNextCard: () => {},
+  onPreviousCard: () => {},
   onToggleReverseMode: () => {},
   onModeChange: () => {},
 };

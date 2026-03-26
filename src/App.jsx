@@ -51,6 +51,8 @@ export default function App() {
     showHint,
     setIsFlipped,
     reshuffle,
+    goToNextCard,
+    goToPreviousCard,
     nextCard,
   } = useStudyQueue(cards);
 
@@ -88,9 +90,9 @@ export default function App() {
     setMode("study");
   };
 
-  const handleRateCard = (isCorrect) => {
+  const handleRateCard = (quality) => {
     if (!currentCard) return;
-    rateCard(currentCard.id, isCorrect);
+    rateCard(currentCard.id, quality);
     nextCard();
   };
 
@@ -118,6 +120,8 @@ export default function App() {
             onFlip={() => setIsFlipped((prev) => !prev)}
             onRate={handleRateCard}
             onReshuffle={reshuffle}
+            onNextCard={goToNextCard}
+            onPreviousCard={goToPreviousCard}
             onToggleReverseMode={() => setIsReverseMode((prev) => !prev)}
             onModeChange={handleModeChange}
           />

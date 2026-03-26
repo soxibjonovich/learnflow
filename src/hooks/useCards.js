@@ -6,6 +6,11 @@ import {
   deleteSharedCard,
   addSharedCardsBulk,
 } from "../lib/supabase";
+import {
+  DEFAULT_REVIEW_STATE,
+  normalizeCardReviewState,
+  sm2,
+} from "../lib/repetition";
 
 /**
  * useCards Hook
@@ -36,7 +41,7 @@ export function useCards() {
       // Load from localStorage first
       const stored = localStorage.getItem("flashcards");
       if (stored) {
-        localCards = JSON.parse(stored);
+        localCards = JSON.parse(stored).map(normalizeCardReviewState);
         setCards(localCards);
       }
 
@@ -55,31 +60,33 @@ export function useCards() {
           translation: card.translation || "",
           unit: card.unit || "General",
           level: card.level || "Beginner",
-          box: 1,
-          reviews: 0,
-          lastReview: null,
-          nextReview: null,
           created: now + index,
+          ...DEFAULT_REVIEW_STATE,
         }));
         const mergedCards = dbCards.map((dbCard) => {
           const localCard = localCardsById.get(dbCard.id);
 
           if (!localCard) {
-            return dbCard;
+            return normalizeCardReviewState(dbCard);
           }
 
-          return {
+          return normalizeCardReviewState({
             ...dbCard,
             box: localCard.box ?? dbCard.box,
-            reviews: localCard.reviews ?? dbCard.reviews,
+            repetitions: localCard.repetitions ?? dbCard.repetitions,
             lastReview: localCard.lastReview ?? dbCard.lastReview,
             nextReview: localCard.nextReview ?? dbCard.nextReview,
+            intervalDays: localCard.intervalDays ?? dbCard.intervalDays,
+            easeFactor: localCard.easeFactor ?? dbCard.easeFactor,
+            status: localCard.status ?? dbCard.status,
             created: localCard.created ?? dbCard.created,
-          };
+          });
         });
 
         const dbIds = new Set(mergedCards.map((card) => card.id));
-        const localOnlyCards = localCards.filter((card) => !dbIds.has(card.id));
+        const localOnlyCards = localCards
+          .filter((card) => !dbIds.has(card.id))
+          .map(normalizeCardReviewState);
 
         setCards([...mergedCards, ...localOnlyCards]);
       }
@@ -100,14 +107,11 @@ export function useCards() {
         id: saved.id,
         ...cardData,
         level: cardData.level || "Beginner",
-        box: 1,
-        reviews: 0,
-        lastReview: null,
-        nextReview: null,
         created: now,
+        ...DEFAULT_REVIEW_STATE,
       };
 
-      setCards((prev) => [...prev, newCard]);
+      setCards((prev) => [...prev, normalizeCardReviewState(newCard)]);
       return newCard;
     } catch (err) {
       console.error("Error adding card:", err);
@@ -117,14 +121,12 @@ export function useCards() {
         id: now,
         ...cardData,
         level: cardData.level || "Beginner",
-        box: 1,
-        reviews: 0,
-        lastReview: null,
-        nextReview: null,
         created: now,
+        ...DEFAULT_REVIEW_STATE,
       };
-      setCards((prev) => [...prev, newCard]);
-      return newCard;
+      const normalized = normalizeCardReviewState(newCard);
+      setCards((prev) => [...prev, normalized]);
+      return normalized;
     }
   }, []);
 
@@ -163,15 +165,13 @@ export function useCards() {
         example: card.example || "",
         unit: card.unit || "General",
         level: card.level || "Beginner",
-        box: 1,
-        reviews: 0,
-        lastReview: null,
-        nextReview: null,
         created: now + index,
+        ...DEFAULT_REVIEW_STATE,
       }));
 
-      setCards((prev) => [...prev, ...newCards]);
-      return newCards;
+      const normalized = newCards.map(normalizeCardReviewState);
+      setCards((prev) => [...prev, ...normalized]);
+      return normalized;
     } catch (err) {
       console.error("Error bulk adding cards:", err);
       const now = Date.now();
@@ -183,40 +183,22 @@ export function useCards() {
         example: card.example || "",
         unit: card.unit || "General",
         level: card.level || "Beginner",
-        box: 1,
-        reviews: 0,
-        lastReview: null,
-        nextReview: null,
         created: now + index,
+        ...DEFAULT_REVIEW_STATE,
       }));
 
-      setCards((prev) => [...prev, ...localCards]);
+      const normalized = localCards.map(normalizeCardReviewState);
+      setCards((prev) => [...prev, ...normalized]);
       setError("Database unavailable. Imported cards were saved locally.");
-      return localCards;
+      return normalized;
     }
   }, []);
 
-  const rateCard = useCallback((cardId, correct) => {
+  const rateCard = useCallback((cardId, quality) => {
     setCards((prev) =>
       prev.map((card) => {
         if (card.id !== cardId) return card;
-
-        const newBox = correct ? Math.min(card.box + 1, 5) : 1;
-        const intervals = {
-          1: 0,
-          2: 1 * 24 * 60 * 60 * 1000,
-          3: 3 * 24 * 60 * 60 * 1000,
-          4: 7 * 24 * 60 * 60 * 1000,
-          5: 14 * 24 * 60 * 60 * 1000,
-        };
-
-        return {
-          ...card,
-          box: newBox,
-          reviews: card.reviews + 1,
-          lastReview: Date.now(),
-          nextReview: Date.now() + (intervals[newBox] || 0),
-        };
+        return { ...card, ...sm2(card, quality) };
       }),
     );
   }, []);
@@ -225,10 +207,8 @@ export function useCards() {
     setCards((prev) =>
       prev.map((card) => ({
         ...card,
+        ...DEFAULT_REVIEW_STATE,
         box: 1,
-        reviews: 0,
-        lastReview: null,
-        nextReview: null,
       })),
     );
   }, []);
@@ -239,13 +219,16 @@ export function useCards() {
   }, [cards]);
 
   const getStats = useCallback(() => {
+    const now = Date.now();
     const total = cards.length;
-    const mastered = cards.filter((c) => c.box >= 5).length;
-    const learning = cards.filter((c) => c.box > 1 && c.box < 5).length;
-    const newCards = cards.filter((c) => c.box === 1).length;
+    const mastered = cards.filter((c) => c.status === "mastered").length;
+    const reviewing = cards.filter((c) => c.status === "reviewing").length;
+    const learning = cards.filter((c) => c.status === "learning").length;
+    const newCards = cards.filter((c) => c.status === "new").length;
+    const due = cards.filter((c) => !c.nextReview || c.nextReview <= now).length;
     const progress = total > 0 ? (mastered / total) * 100 : 0;
 
-    return { total, mastered, learning, new: newCards, progress };
+    return { total, mastered, reviewing, learning, due, new: newCards, progress };
   }, [cards]);
 
   return {

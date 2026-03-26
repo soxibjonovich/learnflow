@@ -1,17 +1,30 @@
 import React from "react";
-import { ArrowLeftRight, Check, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { REVIEW_LABELS } from "@/lib/repetition";
+
+const REVIEW_BUTTONS = [
+  { quality: 0, className: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100" },
+  { quality: 3, className: "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100" },
+  { quality: 4, className: "border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100" },
+  { quality: 5, className: "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" },
+  { quality: 6, className: "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" },
+];
 
 export default function StudyControls({
   isFlipped,
   isReverseMode,
   onRate,
   onReshuffle,
+  onNextCard,
+  onPreviousCard,
   onToggleReverseMode,
   currentIndex,
   totalCards,
   box,
   reviews,
+  status,
+  nextReviewLabel,
 }) {
   return (
     <div className="space-y-4 mb-6">
@@ -21,6 +34,14 @@ export default function StudyControls({
         </div>
 
         <div className="flex items-center gap-2">
+          <Button onClick={onPreviousCard} variant="outline" size="sm">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Prev
+          </Button>
+          <Button onClick={onNextCard} variant="outline" size="sm">
+            <ArrowRight className="w-4 h-4 mr-2" />
+            Next
+          </Button>
           <Button onClick={onToggleReverseMode} variant="outline" size="sm">
             <ArrowLeftRight className="w-4 h-4 mr-2" />
             {isReverseMode ? "Reverse" : "Normal"}
@@ -33,25 +54,21 @@ export default function StudyControls({
       </div>
 
       <div className="text-center text-sm text-slate-500 mono">
-        Box {box} • Reviews: {reviews}
+        Box {box} • {status} • Reviews: {reviews} • Next: {nextReviewLabel}
       </div>
 
       {isFlipped && (
-        <div className="flex gap-4 pt-1">
-          <Button
-            onClick={() => onRate(false)}
-            variant="outline"
-            className="flex-1 h-12 text-base font-medium border-2 border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
-          >
-            <X className="w-5 h-5 mr-2" />
-            Need to learn
-          </Button>
-          <Button
-            onClick={() => onRate(true)}
-            className="flex-1 h-12 text-base font-medium bg-green-600 text-white hover:bg-green-700"
-          >
-            <Check className="w-5 h-5 mr-2" />I know
-          </Button>
+        <div className="grid gap-3 pt-1 sm:grid-cols-5">
+          {REVIEW_BUTTONS.map(({ quality, className }) => (
+            <Button
+              key={quality}
+              onClick={() => onRate(quality)}
+              variant="outline"
+              className={`h-12 border-2 text-sm font-semibold ${className}`}
+            >
+              {REVIEW_LABELS[quality]}
+            </Button>
+          ))}
         </div>
       )}
     </div>
@@ -63,9 +80,13 @@ StudyControls.defaultProps = {
   isReverseMode: false,
   onRate: () => {},
   onReshuffle: () => {},
+  onNextCard: () => {},
+  onPreviousCard: () => {},
   onToggleReverseMode: () => {},
   currentIndex: 0,
   totalCards: 0,
   box: 1,
   reviews: 0,
+  status: "new",
+  nextReviewLabel: "Today",
 };

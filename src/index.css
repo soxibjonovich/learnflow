@@ -38,11 +38,34 @@
 
 .study-card-shell {
     min-height: 320px;
+    perspective: 1400px;
+}
+
+.study-card-scene {
+    width: 100%;
+    min-height: 320px;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.study-card-flipper {
+    position: relative;
+    width: 100%;
+    min-height: 320px;
+    display: block;
+    transform-style: preserve-3d;
+    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.study-card-flipper.flipped {
+    transform: rotateY(180deg);
 }
 
 .study-card {
-    width: 100%;
-    min-height: 320px;
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -56,8 +79,9 @@
         background 180ms ease,
         border-color 180ms ease,
         box-shadow 180ms ease,
-        color 180ms ease,
-        transform 180ms ease;
+        color 180ms ease;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .study-card.is-question {
@@ -80,6 +104,10 @@
             transparent 30%
         ),
         linear-gradient(135deg, #155e75 0%, #0f172a 100%);
+}
+
+.study-card-face-back {
+    transform: rotateY(180deg);
 }
 
 .study-card-enter {

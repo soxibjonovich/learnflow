@@ -20,7 +20,11 @@ export function useStudyQueue(cards) {
     const now = Date.now();
     const due = cards
       .filter((card) => !card.nextReview || card.nextReview <= now)
-      .sort((a, b) => a.box - b.box);
+      .sort((a, b) => {
+        const nextReviewDelta = (a.nextReview || 0) - (b.nextReview || 0);
+        if (nextReviewDelta !== 0) return nextReviewDelta;
+        return (a.repetitions || 0) - (b.repetitions || 0);
+      });
 
     // Shuffle
     const shuffled = [...due];
@@ -43,6 +47,22 @@ export function useStudyQueue(cards) {
     setCurrentCardIndex(0);
     setIsFlipped(false);
   }, [studyQueue]);
+
+  const goToNextCard = useCallback(() => {
+    if (studyQueue.length <= 1) return;
+    setCurrentCardIndex((prev) => (prev + 1) % studyQueue.length);
+    setIsFlipped(false);
+    setShowHint(true);
+  }, [studyQueue.length]);
+
+  const goToPreviousCard = useCallback(() => {
+    if (studyQueue.length <= 1) return;
+    setCurrentCardIndex((prev) =>
+      prev === 0 ? studyQueue.length - 1 : prev - 1,
+    );
+    setIsFlipped(false);
+    setShowHint(true);
+  }, [studyQueue.length]);
 
   const nextCard = useCallback(() => {
     const newQueue = studyQueue.filter((_, i) => i !== currentCardIndex);
@@ -69,6 +89,8 @@ export function useStudyQueue(cards) {
     showHint,
     setIsFlipped,
     reshuffle,
+    goToNextCard,
+    goToPreviousCard,
     nextCard,
     rebuildQueue: buildQueue,
   };

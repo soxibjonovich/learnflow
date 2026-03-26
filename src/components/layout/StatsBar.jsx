@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
  * Displays flashcard statistics and progress
  * 
  * @param {Object} props
- * @param {Object} props.stats - Statistics object with total, mastered, learning, new
+ * @param {Object} props.stats - Statistics object with total, mastered, reviewing, due, new
  * @param {number} props.progress - Progress percentage (0-100)
  * @param {boolean} props.isLoadingFromDb - Whether data is loading from database
  * @param {string} props.dbError - Database error message (if any)
@@ -36,23 +36,23 @@ export default function StatsBar({ stats, progress, isLoadingFromDb, dbError }) 
           </div>
         </div>
         
-        {/* Learning Cards */}
+        {/* Due Cards */}
         <div className="text-center">
           <div className="text-3xl font-bold text-blue-600">
-            {stats.learning}
+            {stats.due}
           </div>
           <div className="text-xs text-slate-500 uppercase tracking-wider mono">
-            Learning
+            Due
           </div>
         </div>
-        
-        {/* New Cards */}
+
+        {/* Reviewing Cards */}
         <div className="text-center">
           <div className="text-3xl font-bold text-amber-600">
-            {stats.new}
+            {stats.reviewing}
           </div>
           <div className="text-xs text-slate-500 uppercase tracking-wider mono">
-            New
+            Reviewing
           </div>
         </div>
       </div>
@@ -90,8 +90,9 @@ StatsBar.defaultProps = {
   stats: {
     total: 0,
     mastered: 0,
-    learning: 0,
-    new: 0
+    reviewing: 0,
+    due: 0,
+    new: 0,
   },
   progress: 0,
   isLoadingFromDb: false,
