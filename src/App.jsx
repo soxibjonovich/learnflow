@@ -69,6 +69,7 @@ export default function App() {
     testWholeUnit,
     startTest,
     startUnitTest,
+    startReviewTest,
     answerQuestion,
     resetTest,
     toggleUnit,
@@ -139,6 +140,7 @@ export default function App() {
           <TestMode
             cards={cards}
             paraphrases={paraphrases}
+            reviewCards={studyQueue}
             testCards={testCards}
             currentTestIndex={currentTestIndex}
             testAnswers={testAnswers}
@@ -152,6 +154,7 @@ export default function App() {
             onToggleUnit={toggleUnit}
             onStartTest={startTest}
             onStartUnitTest={startUnitTest}
+            onStartReviewTest={startReviewTest}
             onAnswerQuestion={answerQuestion}
             onResetTest={resetTest}
             onModeChange={handleModeChange}
@@ -170,7 +173,7 @@ export default function App() {
           />
         )}
 
-        {mode === "manage" && (
+{mode === "manage" && (
           <ManageMode
             cards={cards}
             onUpdateCard={updateCard}

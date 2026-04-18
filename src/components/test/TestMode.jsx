@@ -6,6 +6,7 @@ import TestResults from './TestResults';
 export default function TestMode({
   cards,
   paraphrases,
+  reviewCards,
   testCards,
   currentTestIndex,
   testAnswers,
@@ -19,6 +20,7 @@ export default function TestMode({
   onToggleUnit,
   onStartTest,
   onStartUnitTest,
+  onStartReviewTest,
   onAnswerQuestion,
   onResetTest,
   onModeChange,
@@ -38,11 +40,13 @@ export default function TestMode({
         <TestSelection
           cards={cards}
           paraphrases={paraphrases}
+          reviewCards={reviewCards}
           selectedUnits={selectedUnits}
           testLimit={testLimit}
           onToggleUnit={onToggleUnit}
           onStartTest={onStartTest}
           onStartUnitTest={onStartUnitTest}
+          onStartReviewTest={onStartReviewTest}
           onTestLimitChange={onTestLimitChange}
         />
       </div>
@@ -83,6 +87,7 @@ export default function TestMode({
 TestMode.defaultProps = {
   cards: [],
   paraphrases: [],
+  reviewCards: [],
   testCards: [],
   currentTestIndex: 0,
   testAnswers: {},
@@ -96,6 +101,7 @@ TestMode.defaultProps = {
   onToggleUnit: () => {},
   onStartTest: () => {},
   onStartUnitTest: () => {},
+  onStartReviewTest: () => {},
   onAnswerQuestion: () => {},
   onResetTest: () => {},
   onModeChange: () => {},

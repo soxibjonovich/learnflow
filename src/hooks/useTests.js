@@ -150,6 +150,32 @@ export function useTest(cards, paraphrases = []) {
     }
   }, [currentTestIndex, testCards, testAnswers, testType, isAnswerCorrect, generateMultipleChoiceOptions]);
 
+  const startReviewTest = useCallback((type, reviewCards) => {
+    if (!reviewCards || reviewCards.length === 0) {
+      alert('No cards due for review!');
+      return;
+    }
+
+    setTestType(type);
+    setTestCategory('cards');
+    setTestWholeUnit('review');
+
+    const shuffled = [...reviewCards].sort(() => Math.random() - 0.5);
+    const limit = testLimit === 'all' ? shuffled.length : 10;
+    const testSet = shuffled.slice(0, Math.min(limit, shuffled.length));
+
+    setTestCards(testSet);
+    setCurrentTestIndex(0);
+    setTestAnswers({});
+    setTestComplete(false);
+
+    if (type === 'multiple-choice' && testSet.length > 0) {
+      generateMultipleChoiceOptions(testSet[0], testSet);
+    } else {
+      setMultipleChoiceOptions([]);
+    }
+  }, [testLimit, generateMultipleChoiceOptions]);
+
   const resetTest = useCallback(() => {
     setTestCards([]);
     setCurrentTestIndex(0);
@@ -189,6 +215,7 @@ export function useTest(cards, paraphrases = []) {
     testWholeUnit,
     startTest,
     startUnitTest,
+    startReviewTest,
     answerQuestion,
     resetTest,
     toggleUnit,

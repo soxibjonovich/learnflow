@@ -1,15 +1,17 @@
 import React from 'react';
-import { Check, ClipboardCheck, Edit2, FileText } from 'lucide-react';
+import { Check, ClipboardCheck, Edit2, FileText, BookOpen } from 'lucide-react';
 import UnitTestButtons from './UnitTestButtons';
 
 export default function TestSelection({
   cards,
   paraphrases,
+  reviewCards,
   selectedUnits,
   testLimit,
   onToggleUnit,
   onStartTest,
   onStartUnitTest,
+  onStartReviewTest,
   onTestLimitChange,
 }) {
   const units = [...new Set(cards.map((card) => card.unit || 'General'))].sort();
@@ -71,6 +73,45 @@ export default function TestSelection({
       </div>
 
       <UnitTestButtons units={units} unitCardCounts={unitCardCounts} onStartTest={onStartUnitTest} />
+
+      {reviewCards.length > 0 && (
+        <div className="mb-6 pb-6 border-b border-slate-200">
+          <h3 className="font-bold text-slate-900 border-b pb-2 mb-4 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-amber-600" />
+            Review Due Words
+            <span className="text-xs font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 ml-1">
+              {reviewCards.length} due
+            </span>
+          </h3>
+          <div className="grid md:grid-cols-2 gap-3">
+            <button
+              onClick={() => onStartReviewTest('written', reviewCards)}
+              className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-amber-500 hover:bg-amber-50 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <Edit2 className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                <div>
+                  <div className="font-bold text-slate-900 group-hover:text-amber-600">Written Review</div>
+                  <div className="text-xs text-slate-500">Test your due words by typing</div>
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={() => onStartReviewTest('multiple-choice', reviewCards)}
+              disabled={reviewCards.length < 4}
+              className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-amber-500 hover:bg-amber-50 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center gap-3">
+                <Check className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                <div>
+                  <div className="font-bold text-slate-900 group-hover:text-amber-600">Multiple Choice Review</div>
+                  <div className="text-xs text-slate-500">Choose the correct answer</div>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-4 mb-6">
         <div className="space-y-4">
@@ -140,10 +181,12 @@ export default function TestSelection({
 TestSelection.defaultProps = {
   cards: [],
   paraphrases: [],
+  reviewCards: [],
   selectedUnits: [],
   testLimit: 10,
   onToggleUnit: () => {},
   onStartTest: () => {},
   onStartUnitTest: () => {},
+  onStartReviewTest: () => {},
   onTestLimitChange: () => {},
 };

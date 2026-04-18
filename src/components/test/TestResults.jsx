@@ -26,8 +26,8 @@ export default function TestResults({
         <div className="text-6xl font-bold text-indigo-600 mb-2">{score.percentage}%</div>
         <div className="text-xl text-slate-600 mono">
           {score.correct} / {score.total} correct
-          {unitName ? ` • ${unitName}` : ''}
-          {` • ${testCategory === 'paraphrases' ? 'Paraphrase' : 'Flashcard'} Test`}
+          {unitName && unitName !== 'review' ? ` • ${unitName}` : ''}
+          {` • ${unitName === 'review' ? 'Review Words' : testCategory === 'paraphrases' ? 'Paraphrase' : 'Flashcard'} Test`}
         </div>
       </div>
 

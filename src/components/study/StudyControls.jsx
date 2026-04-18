@@ -1,14 +1,10 @@
 import React from "react";
 import { ArrowLeft, ArrowLeftRight, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { REVIEW_LABELS } from "@/lib/repetition";
 
 const REVIEW_BUTTONS = [
-  { quality: 0, className: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100" },
-  { quality: 3, className: "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100" },
-  { quality: 4, className: "border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100" },
-  { quality: 5, className: "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" },
-  { quality: 6, className: "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" },
+  { quality: 0, label: "Again", className: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100" },
+  { quality: 4, label: "Got It", className: "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" },
 ];
 
 export default function StudyControls({
@@ -58,15 +54,15 @@ export default function StudyControls({
       </div>
 
       {isFlipped && (
-        <div className="grid gap-3 pt-1 sm:grid-cols-5">
-          {REVIEW_BUTTONS.map(({ quality, className }) => (
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          {REVIEW_BUTTONS.map(({ quality, label, className }) => (
             <Button
               key={quality}
               onClick={() => onRate(quality)}
               variant="outline"
               className={`h-12 border-2 text-sm font-semibold ${className}`}
             >
-              {REVIEW_LABELS[quality]}
+              {label}
             </Button>
           ))}
         </div>

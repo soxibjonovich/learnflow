@@ -27,7 +27,8 @@ export default function ActiveTest({
     setWrittenAnswer('');
   };
 
-  const categoryLabel = testCategory === 'paraphrases' ? 'Paraphrase Test' : 'Flashcard Test';
+  const categoryLabel = testCategory === 'paraphrases' ? 'Paraphrase Test' : unitName === 'review' ? 'Review Words' : 'Flashcard Test';
+  const displayUnitName = unitName === 'review' ? '' : unitName;
 
   return (
     <div className="space-y-6">
@@ -37,7 +38,7 @@ export default function ActiveTest({
             Question {currentIndex + 1} of {testCards.length}
           </div>
           <div className="text-sm font-medium text-indigo-600 mono">
-            {unitName ? `${unitName} • ` : ''}
+            {displayUnitName ? `${displayUnitName} • ` : ''}
             {categoryLabel} • {testType === 'written' ? 'Written' : 'Multiple Choice'}
           </div>
         </div>
