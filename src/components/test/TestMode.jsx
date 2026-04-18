@@ -25,6 +25,7 @@ export default function TestMode({
   onResetTest,
   onModeChange,
   onTestLimitChange,
+  onRateCards,
 }) {
   const getTestState = () => {
     if (testCards.length === 0) return 'selection';
@@ -76,6 +77,7 @@ export default function TestMode({
         onRetakeTest={() => onStartTest(testType, testCategory)}
         onBackToStudy={() => onModeChange('study')}
         onBackToSelection={onResetTest}
+        onRateCards={onRateCards}
         unitName={testWholeUnit}
       />
     );
@@ -103,6 +105,7 @@ TestMode.defaultProps = {
   onStartUnitTest: () => {},
   onStartReviewTest: () => {},
   onAnswerQuestion: () => {},
+  onRateCards: () => {},
   onResetTest: () => {},
   onModeChange: () => {},
   onTestLimitChange: () => {},

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { Award, Check, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -9,8 +9,21 @@ export default function TestResults({
   onRetakeTest,
   onBackToStudy,
   onBackToSelection,
+  onRateCards,
   unitName,
 }) {
+  const rated = useRef(false);
+
+  useEffect(() => {
+    if (unitName === 'review' && !rated.current && testCards.length > 0) {
+      rated.current = true;
+      testCards.forEach((card) => {
+        const answer = testAnswers[card.id];
+        if (answer) onRateCards(card.id, answer.isCorrect ? 4 : 0);
+      });
+    }
+  }, []);
+
   const score = useMemo(() => {
     const correct = Object.values(testAnswers).filter((answer) => answer.isCorrect).length;
     const total = testCards.length;
@@ -97,5 +110,6 @@ TestResults.defaultProps = {
   onRetakeTest: () => {},
   onBackToStudy: () => {},
   onBackToSelection: () => {},
+  onRateCards: () => {},
   unitName: '',
 };

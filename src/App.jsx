@@ -159,6 +159,7 @@ export default function App() {
             onResetTest={resetTest}
             onModeChange={handleModeChange}
             onTestLimitChange={setTestLimit}
+            onRateCards={rateCard}
           />
         )}
 
