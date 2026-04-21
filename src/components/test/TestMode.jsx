@@ -5,7 +5,6 @@ import TestResults from './TestResults';
 
 export default function TestMode({
   cards,
-  paraphrases,
   reviewCards,
   testCards,
   currentTestIndex,
@@ -19,7 +18,6 @@ export default function TestMode({
   testWholeUnit,
   onToggleUnit,
   onStartTest,
-  onStartUnitTest,
   onStartReviewTest,
   onAnswerQuestion,
   onResetTest,
@@ -40,13 +38,11 @@ export default function TestMode({
       <div className="slide-in">
         <TestSelection
           cards={cards}
-          paraphrases={paraphrases}
           reviewCards={reviewCards}
           selectedUnits={selectedUnits}
           testLimit={testLimit}
           onToggleUnit={onToggleUnit}
           onStartTest={onStartTest}
-          onStartUnitTest={onStartUnitTest}
           onStartReviewTest={onStartReviewTest}
           onTestLimitChange={onTestLimitChange}
         />
@@ -88,7 +84,6 @@ export default function TestMode({
 
 TestMode.defaultProps = {
   cards: [],
-  paraphrases: [],
   reviewCards: [],
   testCards: [],
   currentTestIndex: 0,
@@ -102,7 +97,6 @@ TestMode.defaultProps = {
   testWholeUnit: '',
   onToggleUnit: () => {},
   onStartTest: () => {},
-  onStartUnitTest: () => {},
   onStartReviewTest: () => {},
   onAnswerQuestion: () => {},
   onRateCards: () => {},

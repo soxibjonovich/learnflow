@@ -48,9 +48,9 @@ export default function StudyMode({
           <p className="text-slate-600 mb-6">
             No cards due for review right now. Great work!
           </p>
-          <Button onClick={() => onModeChange("create")} className="hover-lift">
+          <Button onClick={() => onModeChange("manage")} className="hover-lift">
             <Plus className="w-4 h-4 mr-2" />
-            Create New Cards
+            Add Cards
           </Button>
         </div>
       </div>

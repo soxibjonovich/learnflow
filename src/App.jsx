@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { CreateMode } from "./components/create";
 import { Header, ModeSelector, StatsBar } from "./components/layout";
 import { ManageMode } from "./components/manage";
 import { ParaphrasesMode } from "./components/paraphrases";
@@ -7,18 +6,8 @@ import { StudyMode } from "./components/study";
 import { TestMode } from "./components/test";
 import { useCards, useParaphrases, useStudyQueue, useTest } from "./hooks";
 
-const DEFAULT_NEW_CARD = {
-  front: "",
-  back: "",
-  example: "",
-  translation: "",
-  unit: "General",
-  level: "Beginner",
-};
-
 export default function App() {
   const [mode, setMode] = useState("study");
-  const [newCard, setNewCard] = useState(DEFAULT_NEW_CARD);
   const [isReverseMode, setIsReverseMode] = useState(false);
 
   const {
@@ -68,7 +57,6 @@ export default function App() {
     selectedUnits,
     testWholeUnit,
     startTest,
-    startUnitTest,
     startReviewTest,
     answerQuestion,
     resetTest,
@@ -79,16 +67,8 @@ export default function App() {
   const stats = useMemo(() => getStats(), [getStats]);
 
   const handleModeChange = (nextMode) => {
-    if (nextMode === "test") {
-      resetTest();
-    }
+    if (nextMode === "test") resetTest();
     setMode(nextMode);
-  };
-
-  const handleAddCard = async (cardData) => {
-    await addCard(cardData);
-    setNewCard(DEFAULT_NEW_CARD);
-    setMode("study");
   };
 
   const handleRateCard = (quality) => {
@@ -101,9 +81,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <Header />
-
         <ModeSelector currentMode={mode} onModeChange={handleModeChange} />
-
         <StatsBar
           stats={stats}
           progress={stats.progress}
@@ -128,18 +106,9 @@ export default function App() {
           />
         )}
 
-        {mode === "create" && (
-          <CreateMode
-            newCard={newCard}
-            onCardChange={setNewCard}
-            onAddCard={handleAddCard}
-          />
-        )}
-
         {mode === "test" && (
           <TestMode
             cards={cards}
-            paraphrases={paraphrases}
             reviewCards={studyQueue}
             testCards={testCards}
             currentTestIndex={currentTestIndex}
@@ -153,7 +122,6 @@ export default function App() {
             testWholeUnit={testWholeUnit}
             onToggleUnit={toggleUnit}
             onStartTest={startTest}
-            onStartUnitTest={startUnitTest}
             onStartReviewTest={startReviewTest}
             onAnswerQuestion={answerQuestion}
             onResetTest={resetTest}
@@ -174,14 +142,14 @@ export default function App() {
           />
         )}
 
-{mode === "manage" && (
+        {mode === "manage" && (
           <ManageMode
             cards={cards}
+            onAddCard={addCard}
             onUpdateCard={updateCard}
             onDeleteCard={deleteCard}
             onResetProgress={resetProgress}
             onBulkAddCards={bulkAddCards}
-            onSwitchToCreate={() => handleModeChange("create")}
           />
         )}
       </div>
