@@ -79,7 +79,7 @@ export function useTest(cards, paraphrases = []) {
     setTestWholeUnit('');
 
     const shuffled = [...sourceData].sort(() => Math.random() - 0.5);
-    const limit = testLimit === 'all' ? shuffled.length : 10;
+    const limit = testLimit === 'all' ? shuffled.length : Number(testLimit) || 10;
     const testSet = shuffled.slice(0, Math.min(limit, shuffled.length));
 
     setTestCards(testSet);
@@ -156,12 +156,22 @@ export function useTest(cards, paraphrases = []) {
       return;
     }
 
+    // Respect unit filter if any units are selected
+    const filtered = selectedUnits.length > 0
+      ? reviewCards.filter((c) => selectedUnits.includes(c.unit || 'General'))
+      : reviewCards;
+
+    if (filtered.length === 0) {
+      alert('No due cards found in the selected units!');
+      return;
+    }
+
     setTestType(type);
     setTestCategory('cards');
     setTestWholeUnit('review');
 
-    const shuffled = [...reviewCards].sort(() => Math.random() - 0.5);
-    const limit = testLimit === 'all' ? shuffled.length : 10;
+    const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+    const limit = testLimit === 'all' ? shuffled.length : Number(testLimit) || 10;
     const testSet = shuffled.slice(0, Math.min(limit, shuffled.length));
 
     setTestCards(testSet);
@@ -174,7 +184,7 @@ export function useTest(cards, paraphrases = []) {
     } else {
       setMultipleChoiceOptions([]);
     }
-  }, [testLimit, generateMultipleChoiceOptions]);
+  }, [selectedUnits, testLimit, generateMultipleChoiceOptions]);
 
   const resetTest = useCallback(() => {
     setTestCards([]);

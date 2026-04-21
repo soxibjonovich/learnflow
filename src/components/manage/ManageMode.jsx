@@ -82,7 +82,7 @@ function QuickAddRow({ onAdd }) {
   const inputCls = 'w-full px-3 py-2 text-sm bg-transparent focus:outline-none focus:bg-indigo-50 placeholder-slate-300';
 
   return (
-    <tr className="bg-indigo-50/30 border-t border-slate-200">
+    <tr className="bg-indigo-50/30 border-b-2 border-indigo-100">
       <td className="w-8 px-3 border-r border-slate-100 text-slate-300"><Plus className="w-3.5 h-3.5" /></td>
       <td className={cellCls}>
         <input value={draft.front} onChange={(e) => set('front', e.target.value)} onKeyDown={onKey}
@@ -218,6 +218,9 @@ export default function ManageMode({ cards, onAddCard, onUpdateCard, onDeleteCar
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
+              {/* ── Add-new row at the TOP ── */}
+              <QuickAddRow onAdd={onAddCard} />
+
               {filtered.map((card, i) => (
                 <tr key={card.id} className="group hover:bg-slate-50 transition-colors">
                   <td className="w-8 px-3 text-xs text-slate-400 mono border-r border-slate-100">{i + 1}</td>
@@ -255,7 +258,6 @@ export default function ManageMode({ cards, onAddCard, onUpdateCard, onDeleteCar
                   )}
                 </tr>
               ))}
-              <QuickAddRow onAdd={onAddCard} />
             </tbody>
           </table>
         </div>
