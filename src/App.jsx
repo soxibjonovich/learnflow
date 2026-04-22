@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { Header, ModeSelector, StatsBar } from "./components/layout";
 import { ManageMode } from "./components/manage";
 import { ParaphrasesMode } from "./components/paraphrases";
+import { SynonymsMode } from "./components/synonyms";
 import { StudyMode } from "./components/study";
 import { TestMode } from "./components/test";
-import { useCards, useParaphrases, useStudyQueue, useTest } from "./hooks";
+import { useCards, useParaphrases, useStudyQueue, useTest, useSynonyms } from "./hooks";
 
 export default function App() {
   const [mode, setMode] = useState("study");
@@ -65,6 +66,8 @@ export default function App() {
   } = useTest(cards, paraphrases);
 
   const stats = useMemo(() => getStats(), [getStats]);
+
+  const { synonyms, addSynonym, updateSynonym, deleteSynonym } = useSynonyms();
 
   const handleModeChange = (nextMode) => {
     if (nextMode === "test") resetTest();
@@ -139,6 +142,15 @@ export default function App() {
             onAddParaphrase={addParaphrase}
             onUpdateParaphrase={updateParaphrase}
             onDeleteParaphrase={deleteParaphrase}
+          />
+        )}
+
+        {mode === "synonyms" && (
+          <SynonymsMode
+            synonyms={synonyms}
+            onAdd={addSynonym}
+            onUpdate={updateSynonym}
+            onDelete={deleteSynonym}
           />
         )}
 

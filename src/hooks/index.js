@@ -7,3 +7,4 @@ export { useCards } from "./useCards";
 export { useParaphrases } from "./useParaphrases";
 export { useStudyQueue } from "./useStudyQueue";
 export { useTest } from "./useTests";
+export { useSynonyms } from "./useSynonyms";
