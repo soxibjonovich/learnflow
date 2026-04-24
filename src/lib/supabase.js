@@ -106,8 +106,9 @@ export const addParaphrase = async (paraphrase) => {
     .from("paraphrases")
     .insert([
       {
-        original: paraphrase.original,
+        original:   paraphrase.original,
         variations: paraphrase.variations,
+        source:     paraphrase.source || '',
       },
     ])
     .select();
@@ -131,4 +132,72 @@ export const updateParaphrase = async (id, updates) => {
 
   if (error) throw error;
   return data[0];
+};
+
+// ── Synonyms ──────────────────────────────────────────────────────
+export const fetchSynonyms = async () => {
+  const { data, error } = await supabase
+    .from("synonyms")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+};
+
+export const addSynonymToDb = async (row) => {
+  const { data, error } = await supabase
+    .from("synonyms")
+    .insert([{ a: row.a || '', b1: row.b1 || '', b2: row.b2 || '', c1: row.c1 || '', c2: row.c2 || '', c3: row.c3 || '', source: row.source || '' }])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateSynonymInDb = async (id, updates) => {
+  const { data, error } = await supabase
+    .from("synonyms")
+    .update(updates)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteSynonymFromDb = async (id) => {
+  const { error } = await supabase.from("synonyms").delete().eq("id", id);
+  if (error) throw error;
+};
+
+// ── Matching ──────────────────────────────────────────────────────
+export const fetchMatching = async () => {
+  const { data, error } = await supabase
+    .from("matching")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+};
+
+export const addMatchingToDb = async (row) => {
+  const { data, error } = await supabase
+    .from("matching")
+    .insert([{ statement: row.statement || '', match: row.match || '', notes: row.notes || '', source: row.source || '' }])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateMatchingInDb = async (id, updates) => {
+  const { data, error } = await supabase
+    .from("matching")
+    .update(updates)
+    .eq("id", id)
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteMatchingFromDb = async (id) => {
+  const { error } = await supabase.from("matching").delete().eq("id", id);
+  if (error) throw error;
 };

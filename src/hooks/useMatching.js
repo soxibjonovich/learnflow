@@ -1,32 +1,67 @@
 import { useState, useEffect, useCallback } from 'react';
+import {
+  fetchMatching,
+  addMatchingToDb,
+  updateMatchingInDb,
+  deleteMatchingFromDb,
+} from '../lib/supabase';
 
-const KEY = 'matching_items';
-
-function load() {
-  try { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
-  catch { return []; }
+function mapRow(item) {
+  return {
+    id:        item.id,
+    statement: item.statement || '',
+    match:     item.match     || '',
+    notes:     item.notes     || '',
+    source:    item.source    || '',
+  };
 }
 
 export function useMatching() {
-  const [items, setItems] = useState(load);
+  const [items, setItems]       = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError]       = useState(null);
 
-  useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(items));
-  }, [items]);
+  useEffect(() => { load(); }, []);
 
-  const addItem = useCallback((data) => {
-    const entry = { id: Date.now(), ...data };
-    setItems((prev) => [...prev, entry]);
-    return entry;
+  const load = async () => {
+    setIsLoading(true);
+    try {
+      const rows = await fetchMatching();
+      setItems((rows || []).map(mapRow));
+      setError(null);
+    } catch (err) {
+      setError(err.message || 'Could not load matching items.');
+    } finally { setIsLoading(false); }
+  };
+
+  const addItem = useCallback(async (data) => {
+    try {
+      const saved = await addMatchingToDb(data);
+      const entry = mapRow(saved);
+      setItems((prev) => [entry, ...prev]);
+      setError(null);
+      return entry;
+    } catch (err) {
+      setError('Could not save item.');
+      return null;
+    }
   }, []);
 
-  const updateItem = useCallback((id, data) => {
-    setItems((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+  const updateItem = useCallback(async (id, data) => {
+    setItems((prev) => prev.map((s) => s.id === id ? { ...s, ...data } : s));
+    try {
+      await updateMatchingInDb(id, data);
+      setError(null);
+    } catch { setError('Could not update item.'); }
   }, []);
 
-  const deleteItem = useCallback((id) => {
+  const deleteItem = useCallback(async (id) => {
     setItems((prev) => prev.filter((s) => s.id !== id));
+    try {
+      await deleteMatchingFromDb(id);
+      setError(null);
+    } catch { setError('Could not delete item.'); }
   }, []);
 
-  return { items, addItem, updateItem, deleteItem };
+  return { items, isLoading, error, addItem, updateItem, deleteItem };
 }
