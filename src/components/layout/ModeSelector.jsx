@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Brain, ClipboardCheck, FileText, Settings, Layers } from "lucide-react";
+import { Brain, ClipboardCheck, FileText, Settings, Layers, Link2 } from "lucide-react";
 
 export default function ModeSelector({ currentMode, onModeChange }) {
   const modes = [
@@ -9,6 +9,7 @@ export default function ModeSelector({ currentMode, onModeChange }) {
     { id: "paraphrases", label: "Paraphrases",  icon: FileText,       description: "Practice paraphrasing" },
     { id: "manage",      label: "Manage",       icon: Settings,       description: "Edit and organise cards" },
     { id: "synonyms",    label: "Synonyms",     icon: Layers,         description: "A → B → C synonym progressions" },
+    { id: "matching",    label: "Matching",     icon: Link2,          description: "Match statements to answers" },
   ];
 
   return (

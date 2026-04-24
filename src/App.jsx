@@ -3,9 +3,10 @@ import { Header, ModeSelector, StatsBar } from "./components/layout";
 import { ManageMode } from "./components/manage";
 import { ParaphrasesMode } from "./components/paraphrases";
 import { SynonymsMode } from "./components/synonyms";
+import { MatchingMode } from "./components/matching";
 import { StudyMode } from "./components/study";
 import { TestMode } from "./components/test";
-import { useCards, useParaphrases, useStudyQueue, useTest, useSynonyms } from "./hooks";
+import { useCards, useParaphrases, useStudyQueue, useTest, useSynonyms, useMatching } from "./hooks";
 
 export default function App() {
   const [mode, setMode] = useState("study");
@@ -68,6 +69,7 @@ export default function App() {
   const stats = useMemo(() => getStats(), [getStats]);
 
   const { synonyms, addSynonym, updateSynonym, deleteSynonym } = useSynonyms();
+  const { items: matchingItems, addItem: addMatching, updateItem: updateMatching, deleteItem: deleteMatching } = useMatching();
 
   const handleModeChange = (nextMode) => {
     if (nextMode === "test") resetTest();
@@ -151,6 +153,15 @@ export default function App() {
             onAdd={addSynonym}
             onUpdate={updateSynonym}
             onDelete={deleteSynonym}
+          />
+        )}
+
+        {mode === "matching" && (
+          <MatchingMode
+            items={matchingItems}
+            onAdd={addMatching}
+            onUpdate={updateMatching}
+            onDelete={deleteMatching}
           />
         )}
 

@@ -8,3 +8,4 @@ export { useParaphrases } from "./useParaphrases";
 export { useStudyQueue } from "./useStudyQueue";
 export { useTest } from "./useTests";
 export { useSynonyms } from "./useSynonyms";
+export { useMatching } from "./useMatching";
